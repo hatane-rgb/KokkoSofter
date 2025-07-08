@@ -31,7 +31,15 @@ help: ## ヘルプメッセージを表示
 	@echo "debug-gunicorn   デバッグモードでGunicornを起動"
 	@echo "test-django      Django設定をテスト"
 	@echo "generate-secret-key Django用のSECRET_KEYを生成"
+	@echo "create-dirs      必要なディレクトリを作成"
+	@echo "fix-permissions  ファイル権限を修正"
+	@echo "nginx-setup      Nginx設定をセットアップ"
+	@echo "nginx-test       Nginx設定をテスト"
+	@echo "nginx-status     Nginxの状態を確認"
 	@echo "generate-secret-key  Django用のSECRET_KEYを生成"
+	@echo "nginx-setup      Nginx設定をセットアップ"
+	@echo "nginx-test       Nginx設定をテスト"
+	@echo "nginx-status     Nginxの状態を確認"
 
 .PHONY: install
 install: ## 依存関係をインストール
@@ -188,6 +196,45 @@ generate-secret-key: ## Django用のSECRET_KEYを生成して.envに設定
 	sed -i "s/SECRET_KEY=your-secret-key-here-change-this-in-production/SECRET_KEY=$$SECRET_KEY/" $(PROJECT_DIR)/.env
 	@echo "新しいSECRET_KEYが.envファイルに設定されました！"
 	@echo "設定を確認するには: head -5 $(PROJECT_DIR)/.env"
+
+.PHONY: nginx-setup
+nginx-setup: ## Nginx設定をセットアップ
+	@echo "Nginx設定をセットアップ中..."
+	@sudo cp $(PROJECT_DIR)/nginx_kokkosofter.conf /etc/nginx/sites-available/kokkosofter
+	@sudo ln -sf /etc/nginx/sites-available/kokkosofter /etc/nginx/sites-enabled/
+	@sudo nginx -t
+	@sudo systemctl reload nginx
+	@echo "Nginx設定が完了しました"
+
+.PHONY: nginx-test
+nginx-test: ## Nginx設定をテスト
+	@echo "Nginx設定をテスト中..."
+	@sudo nginx -t
+
+.PHONY: nginx-status
+nginx-status: ## Nginxの状態を確認
+	@echo "Nginxの状態を確認中..."
+	@sudo systemctl status nginx
+
+.PHONY: create-dirs
+create-dirs: ## 必要なディレクトリを作成
+	@echo "必要なディレクトリを作成中..."
+	@sudo mkdir -p /var/log/kokkosofter
+	@sudo mkdir -p /var/run/kokkosofter
+	@sudo chown -R www-data:www-data /var/log/kokkosofter /var/run/kokkosofter
+	@sudo chmod 755 /var/log/kokkosofter /var/run/kokkosofter
+	@sudo chown -R www-data:www-data $(PROJECT_DIR)
+	@sudo chmod -R 755 $(PROJECT_DIR)
+	@echo "ディレクトリ作成完了！"
+
+.PHONY: fix-permissions
+fix-permissions: ## ファイル権限を修正
+	@echo "ファイル権限を修正中..."
+	@sudo chown -R www-data:www-data $(PROJECT_DIR)
+	@sudo chown -R www-data:www-data /var/log/kokkosofter /var/run/kokkosofter
+	@sudo chmod -R 755 $(PROJECT_DIR)
+	@sudo chmod 755 /var/log/kokkosofter /var/run/kokkosofter
+	@echo "権限修正完了！"
 
 .PHONY: start
 start: ## 簡単な開発開始コマンド

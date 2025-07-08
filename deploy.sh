@@ -89,6 +89,19 @@ else
     fi
 fi
 
+# 必要なディレクトリの作成
+print_info "必要なディレクトリを作成中..."
+sudo mkdir -p /var/log/kokkosofter /var/run/kokkosofter
+sudo chown -R www-data:www-data /var/log/kokkosofter /var/run/kokkosofter
+sudo chmod 755 /var/log/kokkosofter /var/run/kokkosofter
+
+# プロジェクトディレクトリの所有者を設定
+sudo chown -R www-data:www-data $PROJECT_DIR
+sudo chmod -R 755 $PROJECT_DIR
+sudo chmod -R 644 $PROJECT_DIR/static $PROJECT_DIR/media 2>/dev/null || true
+
+print_success "ディレクトリの作成が完了しました"
+
 # Django プロジェクトディレクトリに移動（すでにPROJECT_DIRにいるので不要）
 # cd KokkoSofter
 
