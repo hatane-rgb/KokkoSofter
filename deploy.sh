@@ -24,8 +24,8 @@ print_warning() {
 
 # 環境変数の設定
 ENVIRONMENT=${1:-development}
-PROJECT_DIR=$(pwd)
-VENV_DIR="venv"
+PROJECT_DIR="/var/www/kokkosofter"
+VENV_DIR="$PROJECT_DIR/venv"
 
 print_info "KokkoSofter デプロイを開始します..."
 print_info "環境: $ENVIRONMENT"
@@ -49,6 +49,9 @@ else
     print_info "既存の仮想環境を使用します"
 fi
 
+# プロジェクトディレクトリに移動
+cd $PROJECT_DIR
+
 # 仮想環境の有効化
 print_info "仮想環境を有効化中..."
 source $VENV_DIR/bin/activate
@@ -71,8 +74,8 @@ if [ ! -f ".env" ]; then
     fi
 fi
 
-# Django プロジェクトディレクトリに移動
-cd KokkoSofter
+# Django プロジェクトディレクトリに移動（すでにPROJECT_DIRにいるので不要）
+# cd KokkoSofter
 
 # データベースマイグレーション
 print_info "データベースマイグレーションを実行中..."
@@ -98,7 +101,7 @@ fi
 if [ "$ENVIRONMENT" = "production" ]; then
     print_success "本番環境のデプロイが完了しました！"
     print_info "Gunicorn でサーバーを起動するには:"
-    print_info "  gunicorn --bind 0.0.0.0:8000 KokkoSofter.wsgi:application"
+    print_info "  $VENV_DIR/bin/gunicorn --config $PROJECT_DIR/gunicorn_config.py KokkoSofter.wsgi:application"
     print_info ""
     print_info "または systemd サービスとして起動してください"
 elif [ "$ENVIRONMENT" = "development" ]; then
