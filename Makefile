@@ -56,14 +56,24 @@ dev-setup: install ## 開発環境をセットアップ
 		echo ".envファイルを作成中..."; \
 		cp $(PROJECT_DIR)/.env.example $(PROJECT_DIR)/.env; \
 		echo "SECRET_KEYを自動生成中..."; \
-		SECRET_KEY=$$(cd $(PROJECT_DIR) && $(VENV_DIR)/bin/python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"); \
-		sed -i "s/SECRET_KEY=your-secret-key-here-change-this-in-production/SECRET_KEY=$$SECRET_KEY/" $(PROJECT_DIR)/.env; \
-		echo "新しいSECRET_KEYが設定されました"; \
+		cd $(PROJECT_DIR) && $(VENV_DIR)/bin/python -c "\
+import re; \
+from django.core.management.utils import get_random_secret_key; \
+with open('.env', 'r') as f: content = f.read(); \
+new_key = get_random_secret_key(); \
+content = re.sub(r'^SECRET_KEY=.*$$', f'SECRET_KEY={new_key}', content, flags=re.MULTILINE); \
+with open('.env', 'w') as f: f.write(content); \
+print('新しいSECRET_KEYが設定されました')"; \
 	elif grep -q "SECRET_KEY=your-secret-key-here-change-this-in-production" $(PROJECT_DIR)/.env; then \
 		echo "デフォルトのSECRET_KEYを新しいキーに更新中..."; \
-		SECRET_KEY=$$(cd $(PROJECT_DIR) && $(VENV_DIR)/bin/python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"); \
-		sed -i "s/SECRET_KEY=your-secret-key-here-change-this-in-production/SECRET_KEY=$$SECRET_KEY/" $(PROJECT_DIR)/.env; \
-		echo "新しいSECRET_KEYが設定されました"; \
+		cd $(PROJECT_DIR) && $(VENV_DIR)/bin/python -c "\
+import re; \
+from django.core.management.utils import get_random_secret_key; \
+with open('.env', 'r') as f: content = f.read(); \
+new_key = get_random_secret_key(); \
+content = re.sub(r'^SECRET_KEY=.*$$', f'SECRET_KEY={new_key}', content, flags=re.MULTILINE); \
+with open('.env', 'w') as f: f.write(content); \
+print('新しいSECRET_KEYが設定されました')"; \
 	fi
 	cd $(PROJECT_DIR) && $(VENV_DIR)/bin/python manage.py makemigrations
 	cd $(PROJECT_DIR) && $(VENV_DIR)/bin/python manage.py migrate
@@ -192,10 +202,15 @@ generate-secret-key: ## Django用のSECRET_KEYを生成して.envに設定
 		echo ".envファイルが存在しないため、.env.exampleからコピーします..."; \
 		cp $(PROJECT_DIR)/.env.example $(PROJECT_DIR)/.env; \
 	fi
-	@SECRET_KEY=$$(cd $(PROJECT_DIR) && $(VENV_DIR)/bin/python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"); \
-	sed -i "s/SECRET_KEY=your-secret-key-here-change-this-in-production/SECRET_KEY=$$SECRET_KEY/" $(PROJECT_DIR)/.env
+	@cd $(PROJECT_DIR) && $(VENV_DIR)/bin/python -c "\
+import re; \
+from django.core.management.utils import get_random_secret_key; \
+with open('.env', 'r') as f: content = f.read(); \
+new_key = get_random_secret_key(); \
+content = re.sub(r'^SECRET_KEY=.*$$', f'SECRET_KEY={new_key}', content, flags=re.MULTILINE); \
+with open('.env', 'w') as f: f.write(content); \
+print(f'SECRET_KEY updated: {new_key[:10]}...')"
 	@echo "新しいSECRET_KEYが.envファイルに設定されました！"
-	@echo "設定を確認するには: head -5 $(PROJECT_DIR)/.env"
 
 .PHONY: nginx-setup
 nginx-setup: ## Nginx設定をセットアップ

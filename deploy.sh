@@ -70,8 +70,17 @@ if [ ! -f ".env" ]; then
         
         # SECRET_KEYを自動生成
         print_info "SECRET_KEYを自動生成中..."
-        SECRET_KEY=$(python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())")
-        sed -i "s/SECRET_KEY=your-secret-key-here-change-this-in-production/SECRET_KEY=$SECRET_KEY/" .env
+        python -c "
+import re
+from django.core.management.utils import get_random_secret_key
+with open('.env', 'r') as f:
+    content = f.read()
+new_key = get_random_secret_key()
+content = re.sub(r'^SECRET_KEY=.*$', f'SECRET_KEY={new_key}', content, flags=re.MULTILINE)
+with open('.env', 'w') as f:
+    f.write(content)
+print('新しいSECRET_KEYが生成されました')
+"
         print_success "新しいSECRET_KEYが生成されました"
         
         print_warning "!!! .env ファイルの他の設定も確認して必要に応じて編集してください !!!"
@@ -83,8 +92,17 @@ else
     # .envファイルが存在する場合、SECRET_KEYがデフォルトのままかチェック
     if grep -q "SECRET_KEY=your-secret-key-here-change-this-in-production" .env; then
         print_warning "デフォルトのSECRET_KEYが検出されました。新しいキーを生成します..."
-        SECRET_KEY=$(python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())")
-        sed -i "s/SECRET_KEY=your-secret-key-here-change-this-in-production/SECRET_KEY=$SECRET_KEY/" .env
+        python -c "
+import re
+from django.core.management.utils import get_random_secret_key
+with open('.env', 'r') as f:
+    content = f.read()
+new_key = get_random_secret_key()
+content = re.sub(r'^SECRET_KEY=.*$', f'SECRET_KEY={new_key}', content, flags=re.MULTILINE)
+with open('.env', 'w') as f:
+    f.write(content)
+print('新しいSECRET_KEYが生成されました')
+"
         print_success "新しいSECRET_KEYが生成されました"
     fi
 fi
