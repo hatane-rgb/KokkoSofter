@@ -193,7 +193,7 @@ SECRET_KEY=自動生成されます
 DEBUG=False
 
 # ホスト設定
-ALLOWED_HOSTS=localhost,127.0.0.1,192.168.1.8,your-domain.com
+ALLOWED_HOSTS=localhost,127.0.0.1,192.168.x.x,your-domain.com
 
 # データベース（SQLite使用、PostgreSQLも対応）
 DATABASE_URL=sqlite:///db.sqlite3

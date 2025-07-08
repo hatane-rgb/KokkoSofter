@@ -33,9 +33,9 @@ configure_domain() {
     print_info "複数ある場合はカンマ区切りで入力してください。"
     echo
     print_info "例："
-    print_info "  - IPアドレスのみ: 192.168.1.8"
+    print_info "  - IPアドレスのみ: 192.168.x.x"
     print_info "  - ドメインのみ: example.com"
-    print_info "  - 複数: 192.168.1.8,example.com,www.example.com"
+    print_info "  - 複数: 192.168.x.x,example.com,www.example.com"
     echo
     
     read -p "ドメイン/IPアドレスを入力 (Enterでスキップ): " DOMAIN_INPUT

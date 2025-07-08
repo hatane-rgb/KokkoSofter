@@ -278,9 +278,9 @@ configure-domain: ## ドメイン名を対話式で設定してNginx/envに適�
 	@echo "複数ある場合はカンマ区切りで入力してください。"
 	@echo ""
 	@echo "例："
-	@echo "  - IPアドレスのみ: 192.168.1.8"
+	@echo "  - IPアドレスのみ: 192.168.x.x"
 	@echo "  - ドメインのみ: example.com"
-	@echo "  - 複数: 192.168.1.8,example.com,www.example.com"
+	@echo "  - 複数: 192.168.x.x,example.com,www.example.com"
 	@echo ""
 	@read -p "ドメイン/IPアドレスを入力: " DOMAIN_INPUT; \
 	if [ -z "$$DOMAIN_INPUT" ]; then \
@@ -352,15 +352,15 @@ nginx-disable-default: ## Nginxのデフォルトサイトを無効化
 fix-csrf: ## CSRF検証エラーを修正
 	@echo "CSRF検証エラーを修正中..."
 	@echo "📝 ALLOWED_HOSTSを更新中..."
-	@read -p "ドメイン名を入力 (例: er.kokkosoft.com): " DOMAIN; \
+	@read -p "ドメイン名を入力 (例: example.com): " DOMAIN; \
 	if [ ! -z "$$DOMAIN" ]; then \
-		sed -i.bak "s/^ALLOWED_HOSTS=.*/ALLOWED_HOSTS=localhost,127.0.0.1,192.168.1.8,$$DOMAIN/" $(PROJECT_DIR)/.env; \
+		sed -i.bak "s/^ALLOWED_HOSTS=.*/ALLOWED_HOSTS=localhost,127.0.0.1,$$DOMAIN/" $(PROJECT_DIR)/.env; \
 		echo "✅ ALLOWED_HOSTSを更新しました"; \
 		echo "🔧 CSRF_TRUSTED_ORIGINSを設定中..."; \
 		if ! grep -q "CSRF_TRUSTED_ORIGINS" $(PROJECT_DIR)/.env; then \
-			echo "CSRF_TRUSTED_ORIGINS=https://$$DOMAIN,http://$$DOMAIN,http://192.168.1.8" >> $(PROJECT_DIR)/.env; \
+			echo "CSRF_TRUSTED_ORIGINS=https://$$DOMAIN,http://$$DOMAIN" >> $(PROJECT_DIR)/.env; \
 		else \
-			sed -i "s/^CSRF_TRUSTED_ORIGINS=.*/CSRF_TRUSTED_ORIGINS=https:\/\/$$DOMAIN,http:\/\/$$DOMAIN,http:\/\/192.168.1.8/" $(PROJECT_DIR)/.env; \
+			sed -i.bak "s|^CSRF_TRUSTED_ORIGINS=.*|CSRF_TRUSTED_ORIGINS=https://$$DOMAIN,http://$$DOMAIN|" $(PROJECT_DIR)/.env; \
 		fi; \
 		echo "✅ CSRF_TRUSTED_ORIGINSを設定しました"; \
 	fi
