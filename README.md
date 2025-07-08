@@ -236,7 +236,7 @@ KokkoSofter/
 
 ## 🆘 サポート
 
-問題が発生した場合は、[Issues](https://github.com/hatane-rgb/KokkoSofter/issues) を作成してください。
+問題が発生した場合は、[Issues](https://github.com/hatane-rgb/KokkoSofter/issues) を作成してください。(対応するかは別)
 
 ## 🎯 ロードマップ
 
