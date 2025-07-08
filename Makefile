@@ -301,7 +301,26 @@ _apply-domain: ## 内部用：ドメインを実際に適用
 		cp $(PROJECT_DIR)/.env.example $(PROJECT_DIR)/.env; \
 	fi
 	@sed -i.bak "s/^ALLOWED_HOSTS=.*/ALLOWED_HOSTS=localhost,127.0.0.1,$(DOMAIN)/" $(PROJECT_DIR)/.env
-	@echo "✅ .envファイルを更新しました"
+	@echo "✅ .envファイルのALLOWED_HOSTSを更新しました"
+	@echo ""
+	@echo "🔧 CSRF_TRUSTED_ORIGINSを設定中..."
+	@CSRF_ORIGINS=""; \
+	IFS=',' read -ra DOMAINS <<< "$(DOMAIN)"; \
+	for domain in "$${DOMAINS[@]}"; do \
+		domain=$$(echo "$$domain" | xargs); \
+		if [[ $$domain =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$$ ]]; then \
+			CSRF_ORIGINS="$${CSRF_ORIGINS}http://$$domain,"; \
+		else \
+			CSRF_ORIGINS="$${CSRF_ORIGINS}https://$$domain,http://$$domain,"; \
+		fi; \
+	done; \
+	CSRF_ORIGINS=$$(echo "$$CSRF_ORIGINS" | sed 's/,$$//'); \
+	if grep -q "^CSRF_TRUSTED_ORIGINS=" $(PROJECT_DIR)/.env; then \
+		sed -i.bak "s|^CSRF_TRUSTED_ORIGINS=.*|CSRF_TRUSTED_ORIGINS=$$CSRF_ORIGINS|" $(PROJECT_DIR)/.env; \
+	else \
+		echo "CSRF_TRUSTED_ORIGINS=$$CSRF_ORIGINS" >> $(PROJECT_DIR)/.env; \
+	fi
+	@echo "✅ CSRF_TRUSTED_ORIGINSを設定しました"
 	@echo ""
 	@echo "🔧 Nginx設定ファイルのserver_nameを更新中..."
 	@FIRST_DOMAIN=$$(echo "$(DOMAIN)" | cut -d',' -f1); \
@@ -314,6 +333,7 @@ _apply-domain: ## 内部用：ドメインを実際に適用
 	@echo "================================"
 	@echo "ALLOWED_HOSTS: localhost,127.0.0.1,$(DOMAIN)"
 	@echo "Nginx server_name: $(DOMAIN)"
+	@grep "CSRF_TRUSTED_ORIGINS=" $(PROJECT_DIR)/.env | head -1 || echo "CSRF_TRUSTED_ORIGINS: 設定なし"
 	@echo "================================"
 	@echo ""
 	@echo "🚀 次のステップ:"
