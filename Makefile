@@ -46,6 +46,7 @@ help: ## ヘルプメッセージを表示
 	@echo "fix-git-owner    Git所有者問題を修正"
 	@echo "git-pull         最新のコードを取得"
 	@echo "fix-media        メディアファイルの権限を修正"
+	@echo "check-media      メディアファイル設定を確認"
 
 .PHONY: install
 install: ## 依存関係をインストール

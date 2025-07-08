@@ -1,0 +1,149 @@
+{% extends 'base.html' %}
+
+{% block title %}管理ダッシュボード - KokkoSofter{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-base-content mb-2">📊 管理ダッシュボード</h1>
+        <p class="text-base-content/70">システムの概要と統計情報</p>
+    </div>
+
+    <!-- 統計カード -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div class="stat bg-primary text-primary-content rounded-lg shadow-lg">
+            <div class="stat-figure">
+                <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 2a1 1 0 00-1 1v1a1 1 0 002 0V3a1 1 0 00-1-1zM4 4h3a3 3 0 006 0h3a2 2 0 012 2v9a2 2 0 01-2 2H4a2 2 0 01-2-2V6a2 2 0 012-2zm2.5 7a1.5 1.5 0 100-3 1.5 1.5 0 000 3zm2.45 4a2.5 2.5 0 10-4.9 0h4.9zM12 9a1 1 0 100 2h3a1 1 0 100-2h-3zm-1 4a1 1 0 011-1h2a1 1 0 110 2h-2a1 1 0 01-1-1z" clip-rule="evenodd"></path>
+                </svg>
+            </div>
+            <div class="stat-title text-primary-content/70">総ユーザー数</div>
+            <div class="stat-value">{{ total_users }}</div>
+            <div class="stat-desc text-primary-content/60">登録済みユーザー</div>
+        </div>
+
+        <div class="stat bg-success text-success-content rounded-lg shadow-lg">
+            <div class="stat-figure">
+                <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                </svg>
+            </div>
+            <div class="stat-title text-success-content/70">アクティブユーザー</div>
+            <div class="stat-value">{{ active_users }}</div>
+            <div class="stat-desc text-success-content/60">有効なアカウント</div>
+        </div>
+
+        <div class="stat bg-warning text-warning-content rounded-lg shadow-lg">
+            <div class="stat-figure">
+                <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd"></path>
+                </svg>
+            </div>
+            <div class="stat-title text-warning-content/70">投稿数</div>
+            <div class="stat-value">{{ total_posts }}</div>
+            <div class="stat-desc text-warning-content/60">総投稿数</div>
+        </div>
+
+        <div class="stat bg-info text-info-content rounded-lg shadow-lg">
+            <div class="stat-figure">
+                <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 2C5.477 2 2 5.477 2 10s3.477 8 8 8 8-3.477 8-8-3.477-8-8-8zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                </svg>
+            </div>
+            <div class="stat-title text-info-content/70">管理者</div>
+            <div class="stat-value">{{ staff_users }}</div>
+            <div class="stat-desc text-info-content/60">スタッフユーザー</div>
+        </div>
+    </div>
+
+    <!-- 管理機能ナビゲーション -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <a href="{% url 'accounts:admin_users' %}" class="card bg-base-100 shadow-lg hover:shadow-xl transition-shadow">
+            <div class="card-body">
+                <h3 class="card-title text-primary">👥 ユーザー管理</h3>
+                <p>ユーザーアカウントの管理と統計</p>
+                <div class="card-actions justify-end">
+                    <button class="btn btn-primary btn-sm">管理画面へ →</button>
+                </div>
+            </div>
+        </a>
+
+        <a href="{% url 'admin:index' %}" target="_blank" class="card bg-base-100 shadow-lg hover:shadow-xl transition-shadow">
+            <div class="card-body">
+                <h3 class="card-title text-warning">🔧 Django管理画面</h3>
+                <p>データベース直接管理</p>
+                <div class="card-actions justify-end">
+                    <button class="btn btn-warning btn-sm">開く →</button>
+                </div>
+            </div>
+        </a>
+
+        <div class="card bg-base-100 shadow-lg">
+            <div class="card-body">
+                <h3 class="card-title text-info">📊 システム状態</h3>
+                <p>サーバーとアプリケーションの監視</p>
+                <div class="card-actions justify-end">
+                    <button class="btn btn-info btn-sm" disabled>開発中...</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 最近のアクティビティ -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- 最近登録されたユーザー -->
+        <div class="card bg-base-100 shadow-lg">
+            <div class="card-body">
+                <h3 class="card-title text-primary mb-4">👋 最近登録されたユーザー</h3>
+                <div class="space-y-3">
+                    {% for user in recent_users %}
+                    <div class="flex items-center space-x-3 p-3 bg-base-200 rounded-lg">
+                        <div class="avatar">
+                            <div class="w-10 rounded-full">
+                                <img src="{{ user.profile.get_avatar_url }}" alt="{{ user.username }}">
+                            </div>
+                        </div>
+                        <div class="flex-1">
+                            <p class="font-semibold">{{ user.username }}</p>
+                            <p class="text-sm text-base-content/60">{{ user.date_joined|date:"Y/m/d H:i" }}</p>
+                        </div>
+                        {% if user.is_staff %}
+                        <div class="badge badge-warning">スタッフ</div>
+                        {% endif %}
+                    </div>
+                    {% empty %}
+                    <p class="text-base-content/60">最近の登録ユーザーはありません。</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- 最近の投稿 -->
+        <div class="card bg-base-100 shadow-lg">
+            <div class="card-body">
+                <h3 class="card-title text-success mb-4">📝 最近の投稿</h3>
+                <div class="space-y-3">
+                    {% for post in recent_posts %}
+                    <div class="p-3 bg-base-200 rounded-lg">
+                        <div class="flex items-start space-x-3">
+                            <div class="avatar">
+                                <div class="w-8 rounded-full">
+                                    <img src="{{ post.author.profile.get_avatar_url }}" alt="{{ post.author.username }}">
+                                </div>
+                            </div>
+                            <div class="flex-1">
+                                <p class="font-semibold text-sm">{{ post.author.username }}</p>
+                                <p class="text-sm">{{ post.content|truncatechars:60 }}</p>
+                                <p class="text-xs text-base-content/60">{{ post.created_at|date:"Y/m/d H:i" }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <p class="text-base-content/60">最近の投稿はありません。</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

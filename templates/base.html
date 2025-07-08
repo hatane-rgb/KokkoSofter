@@ -403,9 +403,17 @@
               </p>
             </div>
           </div>
-          <a href="{% url 'accounts:profile_settings' %}" class="btn btn-xs btn-outline w-full transition-link">
+          <a href="{% url 'accounts:profile_settings' %}" class="btn btn-xs btn-outline w-full mb-1 transition-link">
             ⚙️ アカウント設定
           </a>
+          {% if user.is_staff or user.is_superuser %}
+          <a href="{% url 'accounts:admin_dashboard' %}" class="btn btn-xs btn-info w-full mb-1 transition-link">
+            📊 管理ダッシュボード
+          </a>
+          <a href="{% url 'admin:index' %}" class="btn btn-xs btn-warning w-full transition-link" target="_blank">
+            🔧 Django管理画面
+          </a>
+          {% endif %}
         </div>
       {% endif %}
 
@@ -420,7 +428,11 @@
             <li><a class="rounded-lg hover:bg-primary hover:text-primary-content transition-colors text-base-content">📅 カレンダー</a></li>
             <li><a class="rounded-lg hover:bg-primary hover:text-primary-content transition-colors text-base-content">📁 ファイル置き場</a></li>
             <li><a class="rounded-lg hover:bg-primary hover:text-primary-content transition-colors text-base-content">✅ Todoリスト</a></li>
-            <li><a href="{% url 'accounts:profile_settings' %}" class="rounded-lg hover:bg-primary hover:text-primary-content transition-colors text-base-content transition-link">⚙️ 設定</a></li>
+            <li><a href="{% url 'accounts:profile_settings' %}" class="rounded-lg hover:bg-primary hover:text-primary-content transition-colors text-base-content transition-link">⚙️ アカウント設定</a></li>
+            {% if user.is_staff or user.is_superuser %}
+            <li><a href="{% url 'accounts:admin_dashboard' %}" class="rounded-lg hover:bg-info hover:text-info-content transition-colors text-info transition-link">📊 管理ダッシュボード</a></li>
+            <li><a href="{% url 'admin:index' %}" class="rounded-lg hover:bg-warning hover:text-warning-content transition-colors text-warning transition-link" target="_blank">🔧 Django管理画面</a></li>
+            {% endif %}
           </ul>
         </nav>
         
