@@ -38,6 +38,7 @@ help: ## ヘルプメッセージを表示
 	@echo "nginx-setup      Nginx設定をセットアップ"
 	@echo "nginx-test       Nginx設定をテスト"
 	@echo "nginx-status     Nginxの状態を確認"
+	@echo "nginx-disable-default Nginxデフォルトサイトを無効化"
 
 .PHONY: install
 install: ## 依存関係をインストール
@@ -213,12 +214,19 @@ print(f'SECRET_KEY updated: {new_key[:10]}...')"
 .PHONY: nginx-setup
 nginx-setup: ## Nginx設定をセットアップ
 	@echo "Nginx設定をセットアップ中..."
+	@echo "デフォルトNginxサイトを無効化中..."
 	@sudo rm -f /etc/nginx/sites-enabled/default
+	@sudo rm -f /etc/nginx/sites-enabled/000-default
+	@echo "KokkoSofter設定をコピー中..."
 	@sudo cp $(PROJECT_DIR)/nginx_kokkosofter.conf /etc/nginx/sites-available/kokkosofter
 	@sudo ln -sf /etc/nginx/sites-available/kokkosofter /etc/nginx/sites-enabled/
+	@echo "Nginx設定をテスト中..."
 	@sudo nginx -t
+	@echo "Nginx設定をリロード中..."
 	@sudo systemctl reload nginx
-	@echo "Nginx設定が完了しました"
+	@echo "✅ Nginx設定が完了しました"
+	@echo "📋 有効なサイト:"
+	@sudo ls -la /etc/nginx/sites-enabled/
 
 .PHONY: nginx-test
 nginx-test: ## Nginx設定をテスト
@@ -294,8 +302,9 @@ _apply-domain: ## 内部用：ドメインを実際に適用
 	@echo "🔧 Nginx設定ファイルのserver_nameを更新中..."
 	@FIRST_DOMAIN=$$(echo "$(DOMAIN)" | cut -d',' -f1); \
 	ALL_DOMAINS=$$(echo "$(DOMAIN)" | sed 's/,/ /g'); \
-	sed -i.bak "s/server_name .*/server_name $$ALL_DOMAINS;/" $(PROJECT_DIR)/nginx_kokkosofter.conf
-	@echo "✅ Nginx設定ファイルを更新しました"
+	sed -i.bak "0,/server_name .*/s//server_name $$ALL_DOMAINS;/" $(PROJECT_DIR)/nginx_kokkosofter.conf; \
+	sed -i "s/#     server_name .*/#     server_name $$ALL_DOMAINS;/" $(PROJECT_DIR)/nginx_kokkosofter.conf
+	@echo "✅ Nginx設定ファイル（HTTP/HTTPS）を更新しました"
 	@echo ""
 	@echo "📋 設定内容を確認:"
 	@echo "================================"
@@ -325,3 +334,12 @@ quick-domain-setup: ## ドメイン設定→Nginx適用→サービス再起動�
 	@echo ""
 	@echo "🌐 以下のURLでアクセス可能です:"
 	@grep "ALLOWED_HOSTS=" $(PROJECT_DIR)/.env | sed 's/ALLOWED_HOSTS=//' | tr ',' '\n' | grep -v localhost | grep -v 127.0.0.1 | sed 's/^/  http:\/\//' | sed 's/$/:8000/'
+
+.PHONY: nginx-disable-default
+nginx-disable-default: ## Nginxのデフォルトサイトを無効化
+	@echo "Nginxデフォルトサイトを無効化中..."
+	@sudo rm -f /etc/nginx/sites-enabled/default
+	@sudo rm -f /etc/nginx/sites-enabled/000-default
+	@echo "✅ デフォルトサイトを無効化しました"
+	@echo "📋 有効なサイト:"
+	@sudo ls -la /etc/nginx/sites-enabled/ || echo "  (サイトが見つかりません)"

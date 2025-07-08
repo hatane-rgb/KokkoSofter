@@ -54,8 +54,14 @@ configure_domain() {
     print_info "🔧 Nginx設定ファイルのserver_nameを更新中..."
     FIRST_DOMAIN=$(echo "$DOMAIN_INPUT" | cut -d',' -f1)
     ALL_DOMAINS=$(echo "$DOMAIN_INPUT" | sed 's/,/ /g')
-    sed -i.bak "s/server_name .*/server_name $ALL_DOMAINS;/" nginx_kokkosofter.conf
-    print_success "✅ Nginx設定ファイルを更新しました"
+    
+    # HTTP設定のserver_nameを更新
+    sed -i.bak "0,/server_name .*/s//server_name $ALL_DOMAINS;/" nginx_kokkosofter.conf
+    
+    # HTTPS設定のserver_name（コメントアウト部分）も更新
+    sed -i "s/#     server_name .*/#     server_name $ALL_DOMAINS;/" nginx_kokkosofter.conf
+    
+    print_success "✅ Nginx設定ファイル（HTTP/HTTPS）を更新しました"
     
     echo
     print_success "📋 設定内容:"
@@ -194,11 +200,45 @@ fi
 
 # サーバー起動の準備
 if [ "$ENVIRONMENT" = "production" ]; then
+    print_info "本番環境のNginx設定を適用中..."
+    
+    # Nginxデフォルトサイトを無効化
+    print_info "Nginxデフォルトサイトを無効化中..."
+    sudo rm -f /etc/nginx/sites-enabled/default
+    sudo rm -f /etc/nginx/sites-enabled/000-default
+    
+    # KokkoSofter設定をコピー
+    print_info "KokkoSofter Nginx設定をコピー中..."
+    sudo cp nginx_kokkosofter.conf /etc/nginx/sites-available/kokkosofter
+    sudo ln -sf /etc/nginx/sites-available/kokkosofter /etc/nginx/sites-enabled/
+    
+    # Nginx設定テスト
+    if sudo nginx -t; then
+        print_success "✅ Nginx設定テストが成功しました"
+        print_info "Nginxをリロード中..."
+        sudo systemctl reload nginx
+        print_success "✅ Nginx設定が適用されました"
+    else
+        print_error "❌ Nginx設定にエラーがあります"
+        print_warning "手動で 'sudo nginx -t' を実行して確認してください"
+    fi
+    
+    # systemdサービス設定
+    print_info "systemdサービスを設定中..."
+    sudo cp kokkosofter.service /etc/systemd/system/
+    sudo systemctl daemon-reload
+    sudo systemctl enable kokkosofter
+    sudo systemctl start kokkosofter
+    
     print_success "本番環境のデプロイが完了しました！"
-    print_info "Gunicorn でサーバーを起動するには:"
-    print_info "  $VENV_DIR/bin/gunicorn --config $PROJECT_DIR/gunicorn_config.py KokkoSofter.wsgi:application"
     print_info ""
-    print_info "または systemd サービスとして起動してください"
+    print_info "🎉 次のコマンドでサービス状態を確認してください:"
+    print_info "  sudo systemctl status kokkosofter"
+    print_info "  sudo systemctl status nginx"
+    print_info ""
+    print_info "📋 ログの確認:"
+    print_info "  sudo journalctl -u kokkosofter -f"
+    print_info "  sudo journalctl -u nginx -f"
 elif [ "$ENVIRONMENT" = "development" ]; then
     print_success "開発環境のセットアップが完了しました！"
     print_info "開発サーバーを起動するには:"
