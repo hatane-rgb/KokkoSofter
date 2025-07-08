@@ -31,14 +31,7 @@ help: ## ヘルプメッセージを表示
 	@echo "debug-gunicorn   デバッグモードでGunicornを起動"
 	@echo "test-django      Django設定をテスト"
 	@echo "generate-secret-key Django用のSECRET_KEYを生成"
-	# サーバー側で実行
-	cd /var/www/kokkosofter
-	
-	# CSRF_TRUSTED_ORIGINSを.envに追加
-	echo "CSRF_TRUSTED_ORIGINS=https://er.kokkosoft.com,http://er.kokkosoft.com,http://192.168.1.8" >> .env
-	
-	# 設定確認
-	cat .env | grep CSRF	@echo "create-dirs      必要なディレクトリを作成"
+	@echo "create-dirs      必要なディレクトリを作成"
 	@echo "fix-permissions  ファイル権限を修正"
 	@echo "configure-domain ドメイン名を設定してNginx/envに適用"
 	@echo "quick-domain-setup ドメイン設定→Nginx適用→再起動を一括実行"
