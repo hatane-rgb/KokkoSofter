@@ -82,7 +82,7 @@ make nginx-status
 make service-logs
 ```
 
-## 🛠️ 運用コマンド（Makefile）
+## �️ 運用コマンド（Makefile）
 
 本番環境での日常運用に便利なコマンドが用意されています：
 
@@ -92,12 +92,6 @@ make help                # 利用可能なコマンド一覧
 make service-status      # サービス状態確認
 make service-restart     # サービス再起動
 make service-logs        # ログ表示
-```
-
-### ドメイン/IP設定
-```bash
-make configure-domain    # ドメイン/IPアドレスを対話式で設定
-make quick-domain-setup  # ドメイン設定→Nginx適用→再起動を一括実行
 ```
 
 ### メンテナンス
@@ -137,11 +131,6 @@ ALLOWED_HOSTS=localhost,127.0.0.1,192.168.1.8,your-domain.com
 
 # データベース（SQLite使用、PostgreSQLも対応）
 DATABASE_URL=sqlite:///db.sqlite3
-
-# HTTPS設定（SSL証明書取得前は無効）
-SECURE_SSL_REDIRECT=False
-SESSION_COOKIE_SECURE=False
-CSRF_COOKIE_SECURE=False
 ```
 
 **重要**: `deploy.sh`実行時に`SECRET_KEY`は自動生成されます。
@@ -162,13 +151,120 @@ make quick-domain-setup
 
 ```bash
 # 例: IPアドレスとドメイン名
-ALLOWED_HOSTS=192.168.1.8,er.kokkosoft.com,www.er.kokkosoft.com
+ALLOWED_HOSTS=192.168.1.8,example.com,www.example.com
 
 # 注意: ポート番号は含めない（正しい）
 ALLOWED_HOSTS=192.168.1.8
 
 # 間違い: ポート番号を含む
 ALLOWED_HOSTS=192.168.1.8:8000  # これは間違い
+```
+
+## � トラブルシューティング
+
+### よくある問題と解決方法
+
+#### 1. "Welcome to nginx" が表示される
+
+**原因**: Nginx設定が適用されていない
+
+**解決方法**:
+```bash
+make nginx-setup
+make service-restart
+```
+
+#### 2. PR_END_OF_FILE_ERROR
+
+**原因**: SSL/TLS設定またはプロキシ設定の問題
+
+**解決方法**:
+```bash
+# サービス状態確認
+make service-status
+make nginx-status
+
+# ログ確認
+make service-logs
+sudo journalctl -u nginx -f
+```
+
+#### 3. DisallowedHost エラー
+
+**原因**: ALLOWED_HOSTSにアクセス元が含まれていない
+
+**解決方法**:
+```bash
+# .envファイルを編集
+nano .env
+# ALLOWED_HOSTSにIPアドレス/ドメイン名を追加
+
+# サービス再起動
+make service-restart
+```
+
+#### 4. 権限エラー
+
+**原因**: ファイル権限の問題
+
+**解決方法**:
+```bash
+make fix-permissions
+make service-restart
+```
+
+#### 5. サービスが起動しない
+
+**原因**: 設定ファイルやパスの問題
+
+**解決方法**:
+```bash
+# 詳細ログ確認
+sudo journalctl -xeu kokkosofter.service
+
+# デバッグモードで起動
+make debug-gunicorn
+```
+
+### ログの確認方法
+
+```bash
+# アプリケーションログ
+sudo journalctl -u kokkosofter -f
+
+# Nginxログ
+sudo journalctl -u nginx -f
+sudo tail -f /var/log/nginx/error.log
+
+# アプリケーション固有ログ
+sudo tail -f /var/log/kokkosofter/django.log
+```
+
+## 🔄 更新・メンテナンス
+
+### アプリケーションの更新
+
+```bash
+# 最新コードを取得
+cd /var/www/kokkosofter
+git pull origin main
+
+# 依存関係とデータベースの更新
+make migrate
+make static
+
+# サービス再起動
+make service-restart
+```
+
+### バックアップ
+
+```bash
+# データベースバックアップ
+make backup-db
+
+# ファイルバックアップ（必要に応じて）
+sudo tar -czf /backup/kokkosofter_$(date +%Y%m%d).tar.gz /var/www/kokkosofter
 ```
 
 ## 🔐 SSL/HTTPS設定
@@ -259,143 +355,7 @@ sudo crontab -e
 0 12 * * 0 certbot renew --quiet && systemctl reload nginx
 ```
 
-## 🔧 トラブルシューティング
-
-### よくある問題と解決方法
-
-#### 1. "Welcome to nginx" が表示される
-
-**原因**: Nginx設定が適用されていない
-
-**解決方法**:
-```bash
-make nginx-setup
-make service-restart
-```
-
-#### 2. Server Error (500)
-
-**原因**: アプリケーションエラー
-
-**解決方法**:
-```bash
-# ログの確認
-make service-logs
-sudo tail -50 /var/log/kokkosofter/gunicorn_error.log
-
-# 一般的な解決方法
-make fix-permissions
-make migrate
-make static
-make service-restart
-```
-
-#### 3. PR_END_OF_FILE_ERROR
-
-**原因**: SSL/TLS設定またはプロキシ設定の問題
-
-**解決方法**:
-```bash
-# サービス状態確認
-make service-status
-make nginx-status
-
-# ログ確認
-make service-logs
-sudo journalctl -u nginx -f
-```
-
-#### 4. DisallowedHost エラー
-
-**原因**: ALLOWED_HOSTSにアクセス元が含まれていない
-
-**解決方法**:
-```bash
-# 対話式で設定
-make configure-domain
-
-# または手動で.envファイルを編集
-nano /var/www/kokkosofter/.env
-# ALLOWED_HOSTSにIPアドレス/ドメイン名を追加
-
-# サービス再起動
-make service-restart
-```
-
-#### 5. 権限エラー（OperationalError: attempt to write a readonly database）
-
-**原因**: データベースファイルの権限問題
-
-**解決方法**:
-```bash
-# データベースファイルの権限修正
-sudo chown www-data:www-data /var/www/kokkosofter/db.sqlite3
-sudo chmod 664 /var/www/kokkosofter/db.sqlite3
-
-# プロジェクト全体の権限修正
-make fix-permissions
-make service-restart
-```
-
-#### 6. サービスが起動しない
-
-**原因**: 設定ファイルやパスの問題
-
-**解決方法**:
-```bash
-# 詳細ログ確認
-sudo journalctl -xeu kokkosofter.service
-
-# デバッグモードで起動
-make debug-gunicorn
-
-# 設定チェック
-make test-django
-```
-
-### ログの確認方法
-
-```bash
-# アプリケーションログ
-sudo journalctl -u kokkosofter -f
-
-# Nginxログ
-sudo journalctl -u nginx -f
-sudo tail -f /var/log/nginx/error.log
-
-# アプリケーション固有ログ
-sudo tail -f /var/log/kokkosofter/django.log
-sudo tail -f /var/log/kokkosofter/gunicorn_error.log
-```
-
-## 🔄 更新・メンテナンス
-
-### アプリケーションの更新
-
-```bash
-# 最新コードを取得
-cd /var/www/kokkosofter
-git pull origin main
-
-# 依存関係とデータベースの更新
-make migrate
-make static
-
-# サービス再起動
-make service-restart
-```
-
-### バックアップ
-
-```bash
-# データベースバックアップ
-make backup-db
-
-# ファイルバックアップ（必要に応じて）
-sudo tar -czf /backup/kokkosofter_$(date +%Y%m%d).tar.gz /var/www/kokkosofter
-```
-
-## 💻 開発環境
+## � 開発環境
 
 開発用の簡易セットアップ：
 
@@ -439,8 +399,6 @@ make run
 - ✅ **セキュリティヘッダー**: Nginx経由で適用
 - ✅ **ファイルアップロード制限**: サイズと種類の制限
 - ✅ **HTTPS対応**: SSL証明書設定（コメントアウト済み）
-- ✅ **HSTS対応**: HTTP Strict Transport Security
-- ✅ **環境別セキュリティ設定**: 開発・本番環境の自動切り替え
 
 ## 🆘 サポート
 
