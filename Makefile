@@ -43,6 +43,8 @@ help: ## ヘルプメッセージを表示
 	@echo "check-csrf       CSRF関連設定を確認"
 	@echo "debug-enable     デバッグモード有効化（一時的）"
 	@echo "debug-disable    デバッグモード無効化"
+	@echo "fix-git-owner    Git所有者問題を修正"
+	@echo "git-pull         最新のコードを取得"
 
 .PHONY: install
 install: ## 依存関係をインストール
@@ -429,3 +431,19 @@ check-csrf: ## CSRF関連設定を確認
 	@echo "CSRF設定:"
 	@grep -E "CSRF_COOKIE_SECURE|SESSION_COOKIE_SECURE" $(PROJECT_DIR)/.env || echo "  設定なし"
 	@echo "================================"
+
+.PHONY: fix-git-owner
+fix-git-owner: ## Git所有者問題を修正
+	@echo "🔧 Git所有者問題を修正中..."
+	@if [ -d $(PROJECT_DIR)/.git ]; then \
+		git config --global --add safe.directory $(PROJECT_DIR); \
+		echo "✅ Git safe.directory設定を追加しました"; \
+	else \
+		echo "❌ Gitリポジトリが見つかりません"; \
+	fi
+
+.PHONY: git-pull
+git-pull: fix-git-owner ## 最新のコードを取得
+	@echo "📥 最新のコードを取得中..."
+	@cd $(PROJECT_DIR) && git pull origin main
+	@echo "✅ 最新のコードを取得しました"

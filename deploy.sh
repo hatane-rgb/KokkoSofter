@@ -113,6 +113,20 @@ print_info "KokkoSofter デプロイを開始します..."
 print_info "環境: $ENVIRONMENT"
 print_info "プロジェクトディレクトリ: $PROJECT_DIR"
 
+# Git所有者問題の解決
+print_info "Git設定を確認中..."
+if [ -d "$PROJECT_DIR/.git" ]; then
+    # safe.directoryに追加してdubious ownership警告を解決
+    git config --global --add safe.directory $PROJECT_DIR 2>/dev/null || true
+    print_success "✅ Git safe.directory設定を追加しました"
+    
+    # 最新のコードを取得
+    print_info "最新のコードを取得中..."
+    cd $PROJECT_DIR
+    git pull origin main
+    print_success "✅ 最新のコードを取得しました"
+fi
+
 # Python バージョンの確認
 if ! command -v python3 &> /dev/null; then
     print_error "Python3 がインストールされていません"
