@@ -25,7 +25,7 @@
 ```bash
 # リポジトリをクローン
 git clone https://github.com/hatane-rgb/KokkoSofter.git
-cd KokkoSofter/KokkoSofter
+cd KokkoSofter
 
 # 開発環境をセットアップ
 make dev-setup
@@ -38,10 +38,9 @@ make run
 
 ```bash
 # 本番環境をセットアップ
-cd KokkoSofter
-../deploy.sh production
+./deploy.sh production
 
-# または Makefileを使用
+# または Makefileを使用（Linux/Mac/WSL）
 make production-setup
 ```
 
