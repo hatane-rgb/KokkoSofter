@@ -86,39 +86,99 @@ make service-logs
 
 本番環境での日常運用に便利なコマンドが用意されています：
 
-### 基本操作
+### 📋 ヘルプ・状態確認
 ```bash
-make help                # 利用可能なコマンド一覧
-make service-status      # サービス状態確認
-make service-restart     # サービス再起動
-make service-logs        # ログ表示
+make help                # 利用可能なコマンド一覧表示
+make service-status      # systemdサービス状態確認
+make service-logs        # systemdサービスログ表示
+make nginx-status        # Nginx状態確認
+make check-csrf          # CSRF関連設定確認
 ```
 
-### ドメイン/IP設定
+### 🚀 サービス管理
+```bash
+make service-restart     # systemdサービス再起動
+make nginx-setup         # Nginx設定セットアップ
+make nginx-test          # Nginx設定テスト
+make nginx-disable-default # Nginxデフォルトサイト無効化
+```
+
+### 🌐 ドメイン・ネットワーク設定
 ```bash
 make configure-domain    # ドメイン/IPアドレスを対話式で設定
 make quick-domain-setup  # ドメイン設定→Nginx適用→再起動を一括実行
+make fix-csrf           # CSRF検証エラーを修正（対話式）
 ```
 
-### メンテナンス
+### 🔧 開発・メンテナンス
 ```bash
-make migrate            # データベース更新
-make static             # 静的ファイル更新
-make superuser          # 管理者ユーザー作成
+make dev-setup          # 開発環境セットアップ
+make run                # 開発サーバー起動
+make migrate            # データベースマイグレーション
+make static             # 静的ファイル収集
+make superuser          # スーパーユーザー作成
+make shell              # Django shell起動
+```
+
+### 🔒 セキュリティ・権限
+```bash
+make generate-secret-key # Django用SECRET_KEY生成
 make fix-permissions    # ファイル権限修正
+make create-dirs        # 必要なディレクトリ作成
+make test-django        # Django設定テスト（セキュリティチェック含む）
 ```
 
-### Nginx管理
+### 🐛 デバッグ・トラブルシューティング
 ```bash
-make nginx-setup        # Nginx設定適用
-make nginx-test         # Nginx設定テスト
-make nginx-status       # Nginx状態確認
+make debug-enable       # デバッグモード有効化（一時的・セキュリティリスク）
+make debug-disable      # デバッグモード無効化
+make debug-gunicorn     # デバッグモードでGunicorn起動
+make check              # Djangoシステムチェック
 ```
 
-### セキュリティ
+### 🧹 メンテナンス・バックアップ
 ```bash
-make generate-secret-key # 新しいSECRET_KEY生成
-make test-django        # セキュリティチェック
+make clean              # 一時ファイル削除
+make backup-db          # データベースバックアップ
+make requirements       # requirements.txt更新
+make test               # テスト実行
+```
+
+### 📦 初期化・Git管理
+```bash
+make install            # 依存関係インストール
+make git-init           # Gitリポジトリ初期化
+make start              # 簡単開発開始（環境構築+サーバー起動）
+```
+
+### 💡 よく使用するコマンド組み合わせ
+
+**CSRF/アクセスエラー解決:**
+```bash
+make fix-csrf           # 対話式でドメイン設定
+make check-csrf         # 設定確認
+make service-restart    # 反映
+```
+
+**新しいドメイン追加:**
+```bash
+make quick-domain-setup # 全自動（推奨）
+# または
+make configure-domain && make nginx-setup && make service-restart
+```
+
+**問題発生時の確認:**
+```bash
+make service-logs       # エラーログ確認
+make nginx-test         # Nginx設定確認
+make test-django        # Django設定確認
+```
+
+**権限エラー解決:**
+```bash
+make fix-permissions    # ファイル権限修正
+make create-dirs        # ディレクトリ再作成
+make service-restart    # サービス再起動
 ```
 
 ## ⚙️ 設定ファイル

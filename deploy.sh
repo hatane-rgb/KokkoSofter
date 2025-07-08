@@ -48,7 +48,33 @@ configure_domain() {
     # ALLOWED_HOSTSを更新
     print_info "📝 .envファイルのALLOWED_HOSTSを更新中..."
     sed -i.bak "s/^ALLOWED_HOSTS=.*/ALLOWED_HOSTS=localhost,127.0.0.1,$DOMAIN_INPUT/" .env
-    print_success "✅ .envファイルを更新しました"
+    
+    # CSRF_TRUSTED_ORIGINSを設定
+    print_info "🔧 CSRF_TRUSTED_ORIGINSを設定中..."
+    # ドメインからHTTPS/HTTPのオリジンを生成
+    CSRF_ORIGINS=""
+    IFS=',' read -ra DOMAINS <<< "$DOMAIN_INPUT"
+    for domain in "${DOMAINS[@]}"; do
+        domain=$(echo "$domain" | xargs)  # 空白削除
+        if [[ $domain =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            # IPアドレスの場合はHTTPのみ
+            CSRF_ORIGINS="${CSRF_ORIGINS}http://${domain},"
+        else
+            # ドメインの場合はHTTPS/HTTP両方
+            CSRF_ORIGINS="${CSRF_ORIGINS}https://${domain},http://${domain},"
+        fi
+    done
+    # 最後のカンマを削除
+    CSRF_ORIGINS=$(echo "$CSRF_ORIGINS" | sed 's/,$//')
+    
+    # CSRF_TRUSTED_ORIGINS設定を更新または追加
+    if grep -q "^CSRF_TRUSTED_ORIGINS=" .env; then
+        sed -i "s/^CSRF_TRUSTED_ORIGINS=.*/CSRF_TRUSTED_ORIGINS=$CSRF_ORIGINS/" .env
+    else
+        echo "CSRF_TRUSTED_ORIGINS=$CSRF_ORIGINS" >> .env
+    fi
+    
+    print_success "✅ .envファイルとCSRF設定を更新しました"
     
     # Nginx設定を更新
     print_info "🔧 Nginx設定ファイルのserver_nameを更新中..."
@@ -67,6 +93,7 @@ configure_domain() {
     print_success "📋 設定内容:"
     print_success "================================"
     print_success "ALLOWED_HOSTS: localhost,127.0.0.1,$DOMAIN_INPUT"
+    print_success "CSRF_TRUSTED_ORIGINS: $CSRF_ORIGINS"
     print_success "Nginx server_name: $DOMAIN_INPUT"
     print_success "================================"
     echo
