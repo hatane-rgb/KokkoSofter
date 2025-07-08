@@ -68,12 +68,17 @@ pip install -r requirements.txt
 ### 2. 環境変数の設定
 
 ```bash
-# .env ファイルを作成
+# .env ファイルを作成（SECRET_KEYも自動生成）
+make generate-secret-key
+
+# または手動で作成
 cp .env.example .env
 
 # .env ファイルを編集して適切な値を設定
 nano .env
 ```
+
+**注意**: `make dev-setup` や `make generate-secret-key` を実行すると、SECRET_KEYが自動生成されます。
 
 #### 主要な環境変数
 
@@ -83,22 +88,8 @@ nano .env
 | `DEBUG` | デバッグモード | `False` (本番環境) |
 | `ALLOWED_HOSTS` | 許可されたホスト | `your-domain.com,www.your-domain.com` |
 | `DATABASE_URL` | データベースURL | `postgres://user:pass@localhost:5432/db` |
-| `LOG_FILE` | ログファイルパス | `/var/log/kokkosofter/django.log` |
-| `DJANGO_LOG_LEVEL` | ログレベル | `INFO` |
 
-### 3. 必要なディレクトリの作成（本番環境）
-
-```bash
-# ログとランタイムディレクトリを作成
-sudo mkdir -p /var/log/kokkosofter /var/run/kokkosofter
-sudo chown -R www-data:www-data /var/log/kokkosofter /var/run/kokkosofter
-sudo chmod 755 /var/log/kokkosofter /var/run/kokkosofter
-
-# または Makefileを使用
-make create-dirs
-```
-
-### 4. データベース設定
+### 3. データベース設定
 
 ```bash
 # マイグレーションの実行

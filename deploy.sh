@@ -62,24 +62,35 @@ pip install --upgrade pip
 pip install -r requirements.txt
 print_success "依存関係のインストールが完了しました"
 
-# 環境変数ファイルの確認
+# 環境変数ファイルの確認と設定
 if [ ! -f ".env" ]; then
     if [ -f ".env.example" ]; then
         print_warning ".env ファイルが見つかりません。.env.example をコピーします"
         cp .env.example .env
-        print_warning "!!! .env ファイルを編集して適切な値を設定してください !!!"
+        
+        # SECRET_KEYを自動生成
+        print_info "SECRET_KEYを自動生成中..."
+        SECRET_KEY=$(python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())")
+        sed -i "s/SECRET_KEY=your-secret-key-here-change-this-in-production/SECRET_KEY=$SECRET_KEY/" .env
+        print_success "新しいSECRET_KEYが生成されました"
+        
+        print_warning "!!! .env ファイルの他の設定も確認して必要に応じて編集してください !!!"
     else
         print_error ".env.example ファイルが見つかりません"
         exit 1
     fi
+else
+    # .envファイルが存在する場合、SECRET_KEYがデフォルトのままかチェック
+    if grep -q "SECRET_KEY=your-secret-key-here-change-this-in-production" .env; then
+        print_warning "デフォルトのSECRET_KEYが検出されました。新しいキーを生成します..."
+        SECRET_KEY=$(python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())")
+        sed -i "s/SECRET_KEY=your-secret-key-here-change-this-in-production/SECRET_KEY=$SECRET_KEY/" .env
+        print_success "新しいSECRET_KEYが生成されました"
+    fi
 fi
 
-# 必要なディレクトリの作成
-print_info "必要なディレクトリを作成中..."
-sudo mkdir -p /var/log/kokkosofter /var/run/kokkosofter
-sudo chown -R www-data:www-data /var/log/kokkosofter /var/run/kokkosofter
-sudo chmod 755 /var/log/kokkosofter /var/run/kokkosofter
-print_success "ディレクトリの作成が完了しました"
+# Django プロジェクトディレクトリに移動（すでにPROJECT_DIRにいるので不要）
+# cd KokkoSofter
 
 # データベースマイグレーション
 print_info "データベースマイグレーションを実行中..."

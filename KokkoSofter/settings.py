@@ -165,41 +165,32 @@ LOGGING = {
             'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
             'style': '{',
         },
-        'simple': {
-            'format': '{levelname} {message}',
-            'style': '{',
-        },
     },
     'handlers': {
+        'file': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': config('LOG_FILE', default=BASE_DIR / 'django.log'),
+            'formatter': 'verbose',
+        },
         'console': {
             'level': 'INFO',
             'class': 'logging.StreamHandler',
-            'formatter': 'verbose' if not DEBUG else 'simple',
+            'formatter': 'verbose',
         },
     },
     'root': {
-        'handlers': ['console'],
+        'handlers': ['console', 'file'],
         'level': 'WARNING',
     },
     'loggers': {
         'django': {
-            'handlers': ['console'],
+            'handlers': ['console', 'file'],
             'level': config('DJANGO_LOG_LEVEL', default='INFO'),
             'propagate': False,
         },
     },
 }
-
-# 本番環境のみファイルログを追加
-if not DEBUG:
-    LOGGING['handlers']['file'] = {
-        'level': 'INFO',
-        'class': 'logging.FileHandler',
-        'filename': config('LOG_FILE', default='/var/log/kokkosofter/django.log'),
-        'formatter': 'verbose',
-    }
-    LOGGING['root']['handlers'].append('file')
-    LOGGING['loggers']['django']['handlers'].append('file')
 
 # セッション設定
 SESSION_COOKIE_AGE = 60 * 60 * 24 * 7  # 1週間

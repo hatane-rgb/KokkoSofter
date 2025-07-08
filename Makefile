@@ -24,8 +24,14 @@ help: ## ヘルプメッセージを表示
 	@echo "clean            一時ファイルを削除"
 	@echo "requirements     requirements.txtを更新"
 	@echo "backup-db        データベースをバックアップ"
-	@echo "create-dirs      必要なディレクトリを作成"
 	@echo "git-init         Gitリポジトリを初期化"
+	@echo "service-status   systemdサービスの状態を確認"
+	@echo "service-logs     systemdサービスのログを表示"
+	@echo "service-restart  systemdサービスを再起動"
+	@echo "debug-gunicorn   デバッグモードでGunicornを起動"
+	@echo "test-django      Django設定をテスト"
+	@echo "generate-secret-key Django用のSECRET_KEYを生成"
+	@echo "generate-secret-key  Django用のSECRET_KEYを生成"
 
 .PHONY: install
 install: ## 依存関係をインストール
@@ -38,7 +44,19 @@ install: ## 依存関係をインストール
 .PHONY: dev-setup
 dev-setup: install ## 開発環境をセットアップ
 	@echo "開発環境をセットアップ中..."
-	@if [ ! -f $(PROJECT_DIR)/.env ]; then cp $(PROJECT_DIR)/.env.example $(PROJECT_DIR)/.env; fi
+	@if [ ! -f $(PROJECT_DIR)/.env ]; then \
+		echo ".envファイルを作成中..."; \
+		cp $(PROJECT_DIR)/.env.example $(PROJECT_DIR)/.env; \
+		echo "SECRET_KEYを自動生成中..."; \
+		SECRET_KEY=$$(cd $(PROJECT_DIR) && $(VENV_DIR)/bin/python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"); \
+		sed -i "s/SECRET_KEY=your-secret-key-here-change-this-in-production/SECRET_KEY=$$SECRET_KEY/" $(PROJECT_DIR)/.env; \
+		echo "新しいSECRET_KEYが設定されました"; \
+	elif grep -q "SECRET_KEY=your-secret-key-here-change-this-in-production" $(PROJECT_DIR)/.env; then \
+		echo "デフォルトのSECRET_KEYを新しいキーに更新中..."; \
+		SECRET_KEY=$$(cd $(PROJECT_DIR) && $(VENV_DIR)/bin/python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"); \
+		sed -i "s/SECRET_KEY=your-secret-key-here-change-this-in-production/SECRET_KEY=$$SECRET_KEY/" $(PROJECT_DIR)/.env; \
+		echo "新しいSECRET_KEYが設定されました"; \
+	fi
 	cd $(PROJECT_DIR) && $(VENV_DIR)/bin/python manage.py makemigrations
 	cd $(PROJECT_DIR) && $(VENV_DIR)/bin/python manage.py migrate
 	cd $(PROJECT_DIR) && $(VENV_DIR)/bin/python manage.py collectstatic --noinput
@@ -125,14 +143,51 @@ git-init: ## Gitリポジトリを初期化
 	@echo "2. git remote add origin <your-repository-url>"
 	@echo "3. git push -u origin main"
 
-.PHONY: create-dirs
-create-dirs: ## 必要なディレクトリを作成
-	@echo "必要なディレクトリを作成中..."
-	@sudo mkdir -p /var/log/kokkosofter
-	@sudo mkdir -p /var/run/kokkosofter
-	@sudo chown -R www-data:www-data /var/log/kokkosofter /var/run/kokkosofter
-	@sudo chmod 755 /var/log/kokkosofter /var/run/kokkosofter
-	@echo "ディレクトリ作成完了！"
+.PHONY: service-status
+service-status: ## systemdサービスの状態を確認
+	@echo "KokkoSofterサービスの状態を確認中..."
+	@sudo systemctl status kokkosofter.service
+
+.PHONY: service-logs
+service-logs: ## systemdサービスのログを表示
+	@echo "KokkoSofterサービスのログを表示中..."
+	@sudo journalctl -xeu kokkosofter.service --no-pager
+
+.PHONY: service-restart
+service-restart: ## systemdサービスを再起動
+	@echo "KokkoSofterサービスを再起動中..."
+	@sudo systemctl daemon-reload
+	@sudo systemctl restart kokkosofter.service
+	@sudo systemctl status kokkosofter.service
+
+.PHONY: debug-gunicorn
+debug-gunicorn: ## デバッグモードでGunicornを起動
+	@echo "デバッグモードでGunicornを起動中..."
+	cd $(PROJECT_DIR) && $(VENV_DIR)/bin/gunicorn \
+		--bind 0.0.0.0:8000 \
+		--workers 1 \
+		--timeout 30 \
+		--log-level debug \
+		--access-logfile - \
+		--error-logfile - \
+		KokkoSofter.wsgi:application
+
+.PHONY: test-django
+test-django: ## Django設定をテスト
+	@echo "Django設定をテスト中..."
+	cd $(PROJECT_DIR) && $(VENV_DIR)/bin/python manage.py check --deploy
+
+.PHONY: generate-secret-key
+generate-secret-key: ## Django用のSECRET_KEYを生成して.envに設定
+	@echo "SECRET_KEYを生成して.envファイルに設定中..."
+	@if [ ! -f $(PROJECT_DIR)/.env ]; then \
+		echo ".envファイルが存在しないため、.env.exampleからコピーします..."; \
+		cp $(PROJECT_DIR)/.env.example $(PROJECT_DIR)/.env; \
+	fi
+	@SECRET_KEY=$$(cd $(PROJECT_DIR) && $(VENV_DIR)/bin/python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"); \
+	sed -i "s/SECRET_KEY=your-secret-key-here-change-this-in-production/SECRET_KEY=$$SECRET_KEY/" $(PROJECT_DIR)/.env
+	@echo "新しいSECRET_KEYが.envファイルに設定されました！"
+	@echo "設定を確認するには: head -5 $(PROJECT_DIR)/.env"
 
 .PHONY: start
 start: ## 簡単な開発開始コマンド
