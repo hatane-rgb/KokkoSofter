@@ -305,15 +305,19 @@ _apply-domain: ## 内部用：ドメインを実際に適用
 	@echo ""
 	@echo "🔧 CSRF_TRUSTED_ORIGINSを設定中..."
 	@CSRF_ORIGINS=""; \
-	IFS=',' read -ra DOMAINS <<< "$(DOMAIN)"; \
-	for domain in "$${DOMAINS[@]}"; do \
-		domain=$$(echo "$$domain" | xargs); \
-		if [[ $$domain =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$$ ]]; then \
-			CSRF_ORIGINS="$${CSRF_ORIGINS}http://$$domain,"; \
-		else \
-			CSRF_ORIGINS="$${CSRF_ORIGINS}https://$$domain,http://$$domain,"; \
-		fi; \
+	OLD_IFS=$$IFS; IFS=','; \
+	for domain in $(DOMAIN); do \
+		domain=$$(echo "$$domain" | sed 's/^[ \t]*//;s/[ \t]*$$//'); \
+		case "$$domain" in \
+			*[0-9].[0-9].[0-9].[0-9]*) \
+				CSRF_ORIGINS="$${CSRF_ORIGINS}http://$$domain,"; \
+				;; \
+			*) \
+				CSRF_ORIGINS="$${CSRF_ORIGINS}https://$$domain,http://$$domain,"; \
+				;; \
+		esac; \
 	done; \
+	IFS=$$OLD_IFS; \
 	CSRF_ORIGINS=$$(echo "$$CSRF_ORIGINS" | sed 's/,$$//'); \
 	if grep -q "^CSRF_TRUSTED_ORIGINS=" $(PROJECT_DIR)/.env; then \
 		sed -i.bak "s|^CSRF_TRUSTED_ORIGINS=.*|CSRF_TRUSTED_ORIGINS=$$CSRF_ORIGINS|" $(PROJECT_DIR)/.env; \
