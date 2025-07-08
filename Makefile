@@ -45,6 +45,7 @@ help: ## ヘルプメッセージを表示
 	@echo "debug-disable    デバッグモード無効化"
 	@echo "fix-git-owner    Git所有者問題を修正"
 	@echo "git-pull         最新のコードを取得"
+	@echo "fix-media        メディアファイルの権限を修正"
 
 .PHONY: install
 install: ## 依存関係をインストール
@@ -262,7 +263,17 @@ fix-permissions: ## ファイル権限を修正
 	@sudo chown -R www-data:www-data /var/log/kokkosofter /var/run/kokkosofter
 	@sudo chmod -R 755 $(PROJECT_DIR)
 	@sudo chmod 755 /var/log/kokkosofter /var/run/kokkosofter
-	@echo "権限修正完了！"
+	@echo "静的ファイルとメディアファイルの権限を設定中..."
+	@sudo mkdir -p $(PROJECT_DIR)/static $(PROJECT_DIR)/media $(PROJECT_DIR)/staticfiles
+	@sudo chown -R www-data:www-data $(PROJECT_DIR)/static $(PROJECT_DIR)/media $(PROJECT_DIR)/staticfiles
+	@sudo chmod -R 755 $(PROJECT_DIR)/static $(PROJECT_DIR)/media $(PROJECT_DIR)/staticfiles
+	@sudo find $(PROJECT_DIR)/media -type f -exec chmod 644 {} \; 2>/dev/null || true
+	@sudo find $(PROJECT_DIR)/media -type d -exec chmod 755 {} \; 2>/dev/null || true
+	@if [ -f "$(PROJECT_DIR)/db.sqlite3" ]; then \
+		sudo chown www-data:www-data $(PROJECT_DIR)/db.sqlite3; \
+		sudo chmod 664 $(PROJECT_DIR)/db.sqlite3; \
+	fi
+	@echo "✅ 権限修正完了！"
 
 .PHONY: start
 start: ## 簡単な開発開始コマンド
@@ -447,3 +458,52 @@ git-pull: fix-git-owner ## 最新のコードを取得
 	@echo "📥 最新のコードを取得中..."
 	@cd $(PROJECT_DIR) && git pull origin main
 	@echo "✅ 最新のコードを取得しました"
+
+.PHONY: fix-media
+fix-media: ## メディアファイルの権限を修正
+	@echo "🖼️ メディアファイルの権限を修正中..."
+	@sudo mkdir -p $(PROJECT_DIR)/media/avatars $(PROJECT_DIR)/media/post_images $(PROJECT_DIR)/staticfiles
+	@sudo chown -R www-data:www-data $(PROJECT_DIR)/media $(PROJECT_DIR)/staticfiles
+	@sudo chmod -R 755 $(PROJECT_DIR)/media $(PROJECT_DIR)/staticfiles
+	@sudo find $(PROJECT_DIR)/media -type f -exec chmod 644 {} \; 2>/dev/null || true
+	@sudo find $(PROJECT_DIR)/media -type d -exec chmod 755 {} \; 2>/dev/null || true
+	
+	@echo "📋 シンボリックリンク確認と作成..."
+	@if [ ! -L "/var/www/html/media" ]; then \
+		sudo ln -sf $(PROJECT_DIR)/media /var/www/html/media; \
+		echo "✅ メディアディレクトリのシンボリックリンクを作成しました"; \
+	else \
+		echo "✓ メディアディレクトリのシンボリックリンクは既に存在します"; \
+	fi
+	
+	@echo "🧪 SELinuxコンテキスト設定..."
+	@if command -v restorecon > /dev/null; then \
+		sudo restorecon -R $(PROJECT_DIR)/media 2>/dev/null || echo "SELinuxコンテキスト設定をスキップ"; \
+	fi
+	
+	@echo "✅ メディアファイルの権限を修正しました"
+	@echo ""
+	@echo "📂 メディアディレクトリ一覧:"
+	@ls -la $(PROJECT_DIR)/media/ 2>/dev/null || echo "  メディアディレクトリが空です"
+	@echo ""
+	@echo "📝 メディア設定確認:"
+	@grep "MEDIA" $(PROJECT_DIR)/KokkoSofter/settings.py
+
+.PHONY: check-media
+check-media: ## メディアファイルの設定を確認
+	@echo "🔍 メディアファイル設定を確認中..."
+	@echo "=========================="
+	@echo "📂 メディアディレクトリのパーミッション:"
+	@ls -la $(PROJECT_DIR)/media/ 2>/dev/null || echo "  メディアディレクトリが存在しません"
+	@echo ""
+	@echo "📄 Nginx設定内のメディアパス:"
+	@grep -A 3 "location /media/" /etc/nginx/sites-available/kokkosofter || echo "  設定が見つかりません"
+	@echo ""
+	@echo "🔗 シンボリックリンク状態:"
+	@ls -la /var/www/html/media 2>/dev/null || echo "  シンボリックリンクが存在しません"
+	@echo ""
+	@echo "⚙️ settings.pyのメディア設定:"
+	@grep "MEDIA" $(PROJECT_DIR)/KokkoSofter/settings.py
+	@echo ""
+	@echo "📊 メディアファイル数:"
+	@find $(PROJECT_DIR)/media -type f | wc -l

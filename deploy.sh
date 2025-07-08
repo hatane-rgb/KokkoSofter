@@ -217,7 +217,26 @@ sudo chmod 755 /var/log/kokkosofter /var/run/kokkosofter
 # プロジェクトディレクトリの所有者を設定
 sudo chown -R www-data:www-data $PROJECT_DIR
 sudo chmod -R 755 $PROJECT_DIR
-sudo chmod -R 644 $PROJECT_DIR/static $PROJECT_DIR/media 2>/dev/null || true
+
+# 静的ファイルとメディアファイルの権限を特別に設定
+print_info "静的ファイルとメディアファイルの権限を設定中..."
+sudo mkdir -p $PROJECT_DIR/static $PROJECT_DIR/media $PROJECT_DIR/staticfiles
+sudo mkdir -p $PROJECT_DIR/media/avatars $PROJECT_DIR/media/post_images
+sudo chown -R www-data:www-data $PROJECT_DIR/static $PROJECT_DIR/media $PROJECT_DIR/staticfiles
+sudo chmod -R 755 $PROJECT_DIR/static $PROJECT_DIR/media $PROJECT_DIR/staticfiles
+
+# メディアファイル内のファイルに読み取り権限を付与
+sudo find $PROJECT_DIR/media -type f -exec chmod 644 {} \; 2>/dev/null || true
+sudo find $PROJECT_DIR/media -type d -exec chmod 755 {} \; 2>/dev/null || true
+
+# シンボリックリンク作成（Nginxが直接アクセスできない場合の対策）
+print_info "メディアディレクトリのシンボリックリンクを確認..."
+if [ ! -L "/var/www/html/media" ]; then
+    sudo ln -sf $PROJECT_DIR/media /var/www/html/media
+    print_success "✅ メディアディレクトリのシンボリックリンクを作成しました"
+fi
+
+print_success "✅ 静的ファイルとメディアファイルの権限を設定しました"
 
 # データベースファイルの権限を特別に設定
 print_info "データベースファイルの権限を設定中..."

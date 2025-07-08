@@ -11,3 +11,9 @@ class Post(models.Model):
 
     likes = models.ManyToManyField(User, related_name='liked_posts', blank=True)
     image = models.ImageField(upload_to='post_images/', blank=True, null=True)
+    
+    def get_image_url(self):
+        """投稿画像のURLを取得"""
+        if self.image:
+            return self.image.url
+        return None
