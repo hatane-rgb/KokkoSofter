@@ -22,6 +22,50 @@ print_warning() {
     echo -e "\033[33m[WARNING]\033[0m $1"
 }
 
+# ドメイン/IPアドレス設定用の関数
+configure_domain() {
+    echo
+    print_info "======================================"
+    print_info "🌐 ドメイン/IPアドレス設定"
+    print_info "======================================"
+    echo
+    print_info "アクセス可能にしたいドメイン名やIPアドレスを入力してください。"
+    print_info "複数ある場合はカンマ区切りで入力してください。"
+    echo
+    print_info "例："
+    print_info "  - IPアドレスのみ: 192.168.1.8"
+    print_info "  - ドメインのみ: example.com"
+    print_info "  - 複数: 192.168.1.8,example.com,www.example.com"
+    echo
+    
+    read -p "ドメイン/IPアドレスを入力 (Enterでスキップ): " DOMAIN_INPUT
+    
+    if [ -z "$DOMAIN_INPUT" ]; then
+        print_warning "ドメイン設定をスキップしました。後で 'make configure-domain' で設定できます。"
+        return 0
+    fi
+    
+    # ALLOWED_HOSTSを更新
+    print_info "📝 .envファイルのALLOWED_HOSTSを更新中..."
+    sed -i.bak "s/^ALLOWED_HOSTS=.*/ALLOWED_HOSTS=localhost,127.0.0.1,$DOMAIN_INPUT/" .env
+    print_success "✅ .envファイルを更新しました"
+    
+    # Nginx設定を更新
+    print_info "🔧 Nginx設定ファイルのserver_nameを更新中..."
+    FIRST_DOMAIN=$(echo "$DOMAIN_INPUT" | cut -d',' -f1)
+    ALL_DOMAINS=$(echo "$DOMAIN_INPUT" | sed 's/,/ /g')
+    sed -i.bak "s/server_name .*/server_name $ALL_DOMAINS;/" nginx_kokkosofter.conf
+    print_success "✅ Nginx設定ファイルを更新しました"
+    
+    echo
+    print_success "📋 設定内容:"
+    print_success "================================"
+    print_success "ALLOWED_HOSTS: localhost,127.0.0.1,$DOMAIN_INPUT"
+    print_success "Nginx server_name: $DOMAIN_INPUT"
+    print_success "================================"
+    echo
+}
+
 # 環境変数の設定
 ENVIRONMENT=${1:-development}
 PROJECT_DIR="/var/www/kokkosofter"
@@ -105,6 +149,11 @@ print('新しいSECRET_KEYが生成されました')
 "
         print_success "新しいSECRET_KEYが生成されました"
     fi
+fi
+
+# ドメイン/IPアドレス設定
+if [ "$ENVIRONMENT" = "production" ]; then
+    configure_domain
 fi
 
 # 必要なディレクトリの作成

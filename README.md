@@ -2,7 +2,29 @@
 
 モダンでスタイリッシュなチーム向けソーシャル投稿プラットフォーム
 
-![Django](https://img.shields.io/badge/Django-5.2.4-green)
+![Django](https://img.shiel## 🛠️ 運用コマンド（Makefile）
+
+本番環境での日常運用に便利なコマンドが用意されています：
+
+### 基本操作
+```bash
+make help                # 利用可能なコマンド一覧
+make service-status      # サービス状態確認
+make service-restart     # サービス再起動
+make service-logs        # ログ表示
+```
+
+### ドメイン/IP設定
+```bash
+make configure-domain    # ドメイン/IPアドレスを対話式で設定
+make quick-domain-setup  # ドメイン設定→Nginx適用→再起動を一括実行
+```
+
+### メンテナンス
+```bash
+make migrate            # データベース更新
+make static             # 静的ファイル更新
+make superuser          # 管理者ユーザー作成o-5.2.4-green)
 ![Python](https://img.shields.io/badge/Python-3.8+-blue)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
 
@@ -65,6 +87,7 @@ chmod +x deploy.sh
 - Python仮想環境の構築
 - 依存関係のインストール
 - `.env`ファイルの自動生成とSECRET_KEY設定
+- **ドメイン/IPアドレスの対話式設定**
 - データベースマイグレーション
 - 静的ファイル収集
 - systemdサービス登録・起動
@@ -134,9 +157,19 @@ DATABASE_URL=sqlite:///db.sqlite3
 
 **重要**: `deploy.sh`実行時に`SECRET_KEY`は自動生成されます。
 
-### ALLOWED_HOSTS設定
+### ALLOWED_HOSTS設定（自動化対応）
 
-アクセス可能なホストを正しく設定してください：
+**推奨方法（対話式設定）:**
+```bash
+# ドメイン/IPアドレスを対話式で設定
+make configure-domain
+
+# または一括設定（設定→適用→再起動）
+make quick-domain-setup
+```
+
+**手動設定:**
+アクセス可能なホストを.envファイルで手動設定：
 
 ```bash
 # 例: IPアドレスとドメイン名

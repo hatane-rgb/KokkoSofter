@@ -33,10 +33,8 @@ help: ## ヘルプメッセージを表示
 	@echo "generate-secret-key Django用のSECRET_KEYを生成"
 	@echo "create-dirs      必要なディレクトリを作成"
 	@echo "fix-permissions  ファイル権限を修正"
-	@echo "nginx-setup      Nginx設定をセットアップ"
-	@echo "nginx-test       Nginx設定をテスト"
-	@echo "nginx-status     Nginxの状態を確認"
-	@echo "generate-secret-key  Django用のSECRET_KEYを生成"
+	@echo "configure-domain ドメイン名を設定してNginx/envに適用"
+	@echo "quick-domain-setup ドメイン設定→Nginx適用→再起動を一括実行"
 	@echo "nginx-setup      Nginx設定をセットアップ"
 	@echo "nginx-test       Nginx設定をテスト"
 	@echo "nginx-status     Nginxの状態を確認"
@@ -257,3 +255,73 @@ start: ## 簡単な開発開始コマンド
 	@echo "KokkoSofterを起動中..."
 	@if [ ! -d $(VENV_DIR) ]; then $(MAKE) dev-setup; fi
 	$(MAKE) run
+
+.PHONY: configure-domain
+configure-domain: ## ドメイン名を対話式で設定してNginx/envに適用
+	@echo "======================================"
+	@echo "🌐 ドメイン/IPアドレス設定"
+	@echo "======================================"
+	@echo ""
+	@echo "アクセス可能にしたいドメイン名やIPアドレスを入力してください。"
+	@echo "複数ある場合はカンマ区切りで入力してください。"
+	@echo ""
+	@echo "例："
+	@echo "  - IPアドレスのみ: 192.168.1.8"
+	@echo "  - ドメインのみ: example.com"
+	@echo "  - 複数: 192.168.1.8,example.com,www.example.com"
+	@echo ""
+	@read -p "ドメイン/IPアドレスを入力: " DOMAIN_INPUT; \
+	if [ -z "$$DOMAIN_INPUT" ]; then \
+		echo "❌ ドメイン/IPアドレスが入力されていません"; \
+		exit 1; \
+	fi; \
+	echo ""; \
+	echo "✅ 入力されたドメイン/IPアドレス: $$DOMAIN_INPUT"; \
+	echo ""; \
+	echo "🔧 設定を適用中..."; \
+	$(MAKE) _apply-domain DOMAIN="$$DOMAIN_INPUT"
+
+.PHONY: _apply-domain
+_apply-domain: ## 内部用：ドメインを実際に適用
+	@echo "📝 .envファイルのALLOWED_HOSTSを更新中..."
+	@if [ ! -f $(PROJECT_DIR)/.env ]; then \
+		echo ".envファイルが存在しないため、.env.exampleからコピーします..."; \
+		cp $(PROJECT_DIR)/.env.example $(PROJECT_DIR)/.env; \
+	fi
+	@sed -i.bak "s/^ALLOWED_HOSTS=.*/ALLOWED_HOSTS=localhost,127.0.0.1,$(DOMAIN)/" $(PROJECT_DIR)/.env
+	@echo "✅ .envファイルを更新しました"
+	@echo ""
+	@echo "🔧 Nginx設定ファイルのserver_nameを更新中..."
+	@FIRST_DOMAIN=$$(echo "$(DOMAIN)" | cut -d',' -f1); \
+	ALL_DOMAINS=$$(echo "$(DOMAIN)" | sed 's/,/ /g'); \
+	sed -i.bak "s/server_name .*/server_name $$ALL_DOMAINS;/" $(PROJECT_DIR)/nginx_kokkosofter.conf
+	@echo "✅ Nginx設定ファイルを更新しました"
+	@echo ""
+	@echo "📋 設定内容を確認:"
+	@echo "================================"
+	@echo "ALLOWED_HOSTS: localhost,127.0.0.1,$(DOMAIN)"
+	@echo "Nginx server_name: $(DOMAIN)"
+	@echo "================================"
+	@echo ""
+	@echo "🚀 次のステップ:"
+	@echo "1. make nginx-setup    (Nginx設定を適用)"
+	@echo "2. make service-restart (サービス再起動)"
+	@echo ""
+
+.PHONY: quick-domain-setup
+quick-domain-setup: ## ドメイン設定→Nginx適用→サービス再起動を一括実行
+	@echo "======================================"
+	@echo "🚀 クイックドメインセットアップ"
+	@echo "======================================"
+	$(MAKE) configure-domain
+	@echo ""
+	@echo "🔧 Nginx設定を適用中..."
+	$(MAKE) nginx-setup
+	@echo ""
+	@echo "🔄 サービスを再起動中..."
+	$(MAKE) service-restart
+	@echo ""
+	@echo "✅ ドメイン設定完了！"
+	@echo ""
+	@echo "🌐 以下のURLでアクセス可能です:"
+	@grep "ALLOWED_HOSTS=" $(PROJECT_DIR)/.env | sed 's/ALLOWED_HOSTS=//' | tr ',' '\n' | grep -v localhost | grep -v 127.0.0.1 | sed 's/^/  http:\/\//' | sed 's/$/:8000/'
