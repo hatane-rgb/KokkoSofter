@@ -205,7 +205,20 @@ sudo chown -R www-data:www-data $PROJECT_DIR
 sudo chmod -R 755 $PROJECT_DIR
 sudo chmod -R 644 $PROJECT_DIR/static $PROJECT_DIR/media 2>/dev/null || true
 
-print_success "ディレクトリの作成が完了しました"
+# データベースファイルの権限を特別に設定
+print_info "データベースファイルの権限を設定中..."
+if [ -f "$PROJECT_DIR/db.sqlite3" ]; then
+    sudo chown www-data:www-data $PROJECT_DIR/db.sqlite3
+    sudo chmod 664 $PROJECT_DIR/db.sqlite3
+    print_success "✅ データベースファイルの権限を設定しました"
+else
+    print_warning "⚠️ データベースファイルが見つかりません（マイグレーション後に作成されます）"
+fi
+
+# プロジェクトディレクトリ自体の書き込み権限を確保（SQLite用）
+sudo chmod 775 $PROJECT_DIR
+
+print_success "ディレクトリとファイル権限の設定が完了しました"
 
 # Django プロジェクトディレクトリに移動（すでにPROJECT_DIRにいるので不要）
 # cd KokkoSofter
@@ -215,6 +228,14 @@ print_info "データベースマイグレーションを実行中..."
 python manage.py makemigrations
 python manage.py migrate
 print_success "データベースマイグレーションが完了しました"
+
+# マイグレーション後にデータベースファイルの権限を再設定
+print_info "マイグレーション後のデータベース権限を設定中..."
+if [ -f "$PROJECT_DIR/db.sqlite3" ]; then
+    sudo chown www-data:www-data $PROJECT_DIR/db.sqlite3
+    sudo chmod 664 $PROJECT_DIR/db.sqlite3
+    print_success "✅ データベースファイルの権限を再設定しました"
+fi
 
 # 静的ファイルの収集
 print_info "静的ファイルを収集中..."
