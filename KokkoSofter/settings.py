@@ -30,6 +30,13 @@ DEBUG = config('DEBUG', default=False, cast=bool)
 allowed_hosts_str = config('ALLOWED_HOSTS', default='localhost,127.0.0.1')
 ALLOWED_HOSTS = [host.strip() for host in allowed_hosts_str.split(',') if host.strip()]
 
+# CSRF_TRUSTED_ORIGINS設定 - 環境変数から取得
+csrf_trusted_origins_str = config('CSRF_TRUSTED_ORIGINS', default='')
+if csrf_trusted_origins_str:
+    CSRF_TRUSTED_ORIGINS = [origin.strip() for origin in csrf_trusted_origins_str.split(',') if origin.strip()]
+else:
+    CSRF_TRUSTED_ORIGINS = []
+
 # 開発環境の場合は追加のホストを許可
 if DEBUG:
     additional_hosts = ['0.0.0.0', '127.0.0.1:8000']

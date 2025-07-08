@@ -31,7 +31,14 @@ help: ## ヘルプメッセージを表示
 	@echo "debug-gunicorn   デバッグモードでGunicornを起動"
 	@echo "test-django      Django設定をテスト"
 	@echo "generate-secret-key Django用のSECRET_KEYを生成"
-	@echo "create-dirs      必要なディレクトリを作成"
+	# サーバー側で実行
+	cd /var/www/kokkosofter
+	
+	# CSRF_TRUSTED_ORIGINSを.envに追加
+	echo "CSRF_TRUSTED_ORIGINS=https://er.kokkosoft.com,http://er.kokkosoft.com,http://192.168.1.8" >> .env
+	
+	# 設定確認
+	cat .env | grep CSRF	@echo "create-dirs      必要なディレクトリを作成"
 	@echo "fix-permissions  ファイル権限を修正"
 	@echo "configure-domain ドメイン名を設定してNginx/envに適用"
 	@echo "quick-domain-setup ドメイン設定→Nginx適用→再起動を一括実行"
@@ -39,6 +46,10 @@ help: ## ヘルプメッセージを表示
 	@echo "nginx-test       Nginx設定をテスト"
 	@echo "nginx-status     Nginxの状態を確認"
 	@echo "nginx-disable-default Nginxデフォルトサイトを無効化"
+	@echo "fix-csrf         CSRF検証エラーを修正"
+	@echo "check-csrf       CSRF関連設定を確認"
+	@echo "debug-enable     デバッグモード有効化（一時的）"
+	@echo "debug-disable    デバッグモード無効化"
 
 .PHONY: install
 install: ## 依存関係をインストール
@@ -343,3 +354,61 @@ nginx-disable-default: ## Nginxのデフォルトサイトを無効化
 	@echo "✅ デフォルトサイトを無効化しました"
 	@echo "📋 有効なサイト:"
 	@sudo ls -la /etc/nginx/sites-enabled/ || echo "  (サイトが見つかりません)"
+
+.PHONY: fix-csrf
+fix-csrf: ## CSRF検証エラーを修正
+	@echo "CSRF検証エラーを修正中..."
+	@echo "📝 ALLOWED_HOSTSを更新中..."
+	@read -p "ドメイン名を入力 (例: er.kokkosoft.com): " DOMAIN; \
+	if [ ! -z "$$DOMAIN" ]; then \
+		sed -i.bak "s/^ALLOWED_HOSTS=.*/ALLOWED_HOSTS=localhost,127.0.0.1,192.168.1.8,$$DOMAIN/" $(PROJECT_DIR)/.env; \
+		echo "✅ ALLOWED_HOSTSを更新しました"; \
+		echo "🔧 CSRF_TRUSTED_ORIGINSを設定中..."; \
+		if ! grep -q "CSRF_TRUSTED_ORIGINS" $(PROJECT_DIR)/.env; then \
+			echo "CSRF_TRUSTED_ORIGINS=https://$$DOMAIN,http://$$DOMAIN,http://192.168.1.8" >> $(PROJECT_DIR)/.env; \
+		else \
+			sed -i "s/^CSRF_TRUSTED_ORIGINS=.*/CSRF_TRUSTED_ORIGINS=https:\/\/$$DOMAIN,http:\/\/$$DOMAIN,http:\/\/192.168.1.8/" $(PROJECT_DIR)/.env; \
+		fi; \
+		echo "✅ CSRF_TRUSTED_ORIGINSを設定しました"; \
+	fi
+	@echo "🔧 CSRF設定を調整中..."
+	@if ! grep -q "CSRF_COOKIE_SECURE" $(PROJECT_DIR)/.env; then \
+		echo "CSRF_COOKIE_SECURE=False" >> $(PROJECT_DIR)/.env; \
+		echo "SESSION_COOKIE_SECURE=False" >> $(PROJECT_DIR)/.env; \
+		echo "✅ CSRF設定を追加しました"; \
+	fi
+	@echo "🔄 サービスを再起動中..."
+	$(MAKE) service-restart
+	@echo "✅ CSRF検証エラーの修正完了！"
+
+.PHONY: debug-enable
+debug-enable: ## デバッグモードを一時的に有効化（問題解決後は必ず無効化すること）
+	@echo "⚠️  WARNING: デバッグモードを有効化します（セキュリティリスク）"
+	@echo "問題解決後は必ず 'make debug-disable' を実行してください"
+	@sed -i.bak 's/DEBUG=False/DEBUG=True/' $(PROJECT_DIR)/.env
+	$(MAKE) service-restart
+	@echo "🐛 デバッグモードが有効化されました"
+
+.PHONY: debug-disable
+debug-disable: ## デバッグモードを無効化
+	@echo "🔒 デバッグモードを無効化中..."
+	@sed -i 's/DEBUG=True/DEBUG=False/' $(PROJECT_DIR)/.env
+	$(MAKE) service-restart
+	@echo "✅ デバッグモードが無効化されました"
+
+.PHONY: check-csrf
+check-csrf: ## CSRF関連設定を確認
+	@echo "🔍 CSRF関連設定を確認中..."
+	@echo "================================"
+	@echo "ALLOWED_HOSTS:"
+	@grep "ALLOWED_HOSTS" $(PROJECT_DIR)/.env || echo "  設定なし"
+	@echo ""
+	@echo "CSRF_TRUSTED_ORIGINS:"
+	@grep "CSRF_TRUSTED_ORIGINS" $(PROJECT_DIR)/.env || echo "  設定なし"
+	@echo ""
+	@echo "DEBUG:"
+	@grep "DEBUG" $(PROJECT_DIR)/.env || echo "  設定なし"
+	@echo ""
+	@echo "CSRF設定:"
+	@grep -E "CSRF_COOKIE_SECURE|SESSION_COOKIE_SECURE" $(PROJECT_DIR)/.env || echo "  設定なし"
+	@echo "================================"
