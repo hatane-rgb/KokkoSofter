@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+
+{% block title %}ログイン - KokkoSofter{% endblock %}
+
+{% block page_title %}
+<h1 class="text-2xl font-bold mb-4 text-base-content">ログイン</h1>
+{% endblock %}
+
+{% block content %}
+<div class="card bg-base-100 shadow-xl max-w-md mx-auto">
+  <div class="card-body">
+    <form method="post" action="" class="space-y-6">
+      {% csrf_token %}
+      {{ form.as_p }}
+      <button type="submit" class="btn btn-primary w-full">ログイン</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

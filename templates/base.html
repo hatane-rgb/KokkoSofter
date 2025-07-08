@@ -1,0 +1,1605 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ja" data-theme="">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>KokkoSofter</title>
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@4.7.2/dist/full.min.css" rel="stylesheet" type="text/css" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* 画像ビューワー用スタイル */
+    .image-viewer {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(120, 120, 120, 0.8);
+      z-index: 10000;
+      display: none;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+    }
+    
+    /* ツールチップ用z-index */
+    .tooltip-overlay {
+      z-index: 99999 !important;
+      position: fixed !important;
+    }
+    
+    /* 投稿カード用z-index */
+    .post-card {
+      z-index: 0 !important;
+      position: relative !important;
+    }
+    
+    /* 投稿カードのコンテナ */
+    .post-container {
+      isolation: isolate;
+    }
+    
+    /* ページ遷移ローディング */
+    .page-transition-overlay {
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      width: 100vw !important;
+      height: 100vh !important;
+      background: rgba(0, 0, 0, 0.5) !important;
+      backdrop-filter: blur(3px) !important;
+      z-index: 99999 !important;
+      display: flex !important;
+      justify-content: center !important;
+      align-items: center !important;
+      opacity: 0 !important;
+      visibility: hidden !important;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    }
+    
+    .page-transition-overlay.active {
+      opacity: 1 !important;
+      visibility: visible !important;
+    }
+    
+    .page-transition-spinner {
+      width: 50px !important;
+      height: 50px !important;
+      border: 3px solid rgba(255, 255, 255, 0.2) !important;
+      border-top: 3px solid #ffffff !important;
+      border-radius: 50% !important;
+      animation: page-spin 0.8s linear infinite !important;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3) !important;
+    }
+    
+    @keyframes page-spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    /* ページ遷移アニメーション */
+    .page-content {
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    }
+    
+    .page-content.transitioning {
+      transform: translateY(20px) scale(0.98) !important;
+      opacity: 0.6 !important;
+      filter: blur(1px) !important;
+    }
+    
+    /* リンクホバー効果 */
+    .transition-link {
+      transition: all 0.2s ease;
+    }
+    
+    .transition-link:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    
+    .image-viewer img {
+      max-width: 80vw;
+      max-height: 80vh;
+      width: auto;
+      height: auto;
+      object-fit: contain;
+      border-radius: 8px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+      cursor: default;
+      display: block;
+      margin: auto;
+    }
+    .image-viewer .close-btn {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: rgba(255, 255, 255, 0.9);
+      border: none;
+      color: #333;
+      font-size: 20px;
+      font-weight: bold;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      transition: all 0.2s ease;
+    }
+    .image-viewer .close-btn:hover {
+      background: white;
+      transform: scale(1.1);
+    }
+    /* 投稿画像のスタイル */
+    .post-image {
+      width: 100%;
+      max-width: 500px;
+      height: auto;
+      max-height: 400px;
+      object-fit: cover;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      transition: transform 0.2s ease;
+    }
+    .post-image:hover {
+      transform: scale(1.02);
+    }
+    /* サイドバー固定スタイル */
+    .sidebar-sticky {
+      position: sticky;
+      top: 0;
+      max-height: 100vh;
+      overflow-y: auto;
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    /* 左サイドバー専用スタイル */
+    .sidebar-left {
+      min-height: 100vh;
+      position: sticky;
+      top: 0;
+      align-self: flex-start;
+    }
+    
+    /* 右サイドバー専用スタイル */
+    .sidebar-right {
+      min-height: 100vh;
+      position: sticky;
+      top: 0;
+      align-self: flex-start;
+    }
+    
+    /* サイドバーの背景を画面下まで伸ばす */
+    .sidebar-full-height {
+      min-height: 100vh;
+      border-radius: 0.5rem;
+    }
+    
+    /* メインコンテンツエリアの調整 */
+    .main-content {
+      border-radius: 1rem;
+      margin: 0.5rem;
+      min-height: calc(100vh - 1rem);
+    }
+    
+    /* モバイル対応スタイル */
+    .sidebar-backdrop {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 45;
+      display: none;
+    }
+    
+    .sidebar-backdrop.active {
+      display: block;
+    }
+    
+    .sidebar-mobile {
+      transform: translateX(-100%);
+      transition: transform 0.3s ease-in-out;
+    }
+    
+    .sidebar-mobile.active {
+      transform: translateX(0);
+    }
+    
+    @media (min-width: 768px) {
+      .sidebar-backdrop {
+        display: none !important;
+      }
+      .sidebar-mobile {
+        transform: translateX(0) !important;
+      }
+    }
+    
+    /* モバイルヘッダー */
+    .mobile-header {
+      display: none;
+    }
+    
+    @media (max-width: 767px) {
+      .mobile-header {
+        display: flex;
+      }
+      .desktop-header {
+        display: none;
+      }
+      .sidebar-left {
+        display: block !important;
+      }
+      .main-content {
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+        padding: 1rem;
+        max-width: 100% !important;
+        margin: 0 !important;
+      }
+      .sidebar-right {
+        display: none !important;
+      }
+      
+      /* モーダルのレスポンシブ調整 */
+      .modal-box {
+        max-width: 95vw !important;
+        width: 95vw !important;
+      }
+      
+      #postModalBox {
+        width: 95vw !important;
+        max-width: 95vw !important;
+        height: 85vh !important;
+      }
+      
+      /* 投稿画像のレスポンシブ調整 */
+      .post-image {
+        max-width: 100%;
+        height: auto;
+      }
+    }
+  </style>
+</head>
+
+<body class="bg-base-200 min-h-screen text-base-content">
+
+  <!-- デスクトップヘッダー -->
+  <header class="navbar bg-base-200 px-4 desktop-header">
+    <div class="flex-1">
+      <a href="/" class="inline-block">
+        <img id="logo-image" src="{% static 'images/logo.png' %}" alt="KokkoSofter" class="h-12" />
+      </a>
+      {% if user.is_authenticated %}
+        <label for="modal-post" class="btn btn-sm btn-primary h-8 ml-2">📝 投稿</label>
+        <span class="ml-4">こんにちは！{{ user.username }} さん</span>
+      {% else %}
+        <label for="modal-login" class="btn btn-sm btn-primary h-8 ml-2">ログイン</label>
+      {% endif %}
+    </div>
+    <div class="flex-none gap-2">
+      <label class="swap swap-rotate cursor-pointer">
+        <input type="checkbox" id="theme-toggle" class="theme-controller" />
+        <!-- 太陽アイコン (ライトモード時表示) -->
+        <svg class="swap-off fill-current w-6 h-6" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+          <path d="M5.64,17l-.71.71a1,1,0,0,0,0,1.41,1,1,0,0,0,1.41,0l.71-.71A1,1,0,0,0,5.64,17ZM5,12a1,1,0,0,0-1-1H3a1,1,0,0,0,0,2H4A1,1,0,0,0,5,12Zm7-7a1,1,0,0,0,1-1V3a1,1,0,0,0-2,0V4A1,1,0,0,0,12,5ZM5.64,7.05a1,1,0,0,0,.7.29,1,1,0,0,0,.71-.29,1,1,0,0,0,0-1.41l-.71-.71A1,1,0,0,0,4.93,6.34Zm12,.29a1,1,0,0,0,.7-.29l.71-.71a1,1,0,1,0-1.41-1.41L17,5.64a1,1,0,0,0,0,1.41A1,1,0,0,0,17.66,7.34ZM21,11H20a1,1,0,0,0,0,2h1a1,1,0,0,0,0-2Zm-9,8a1,1,0,0,0-1,1v1a1,1,0,0,0,2,0V20A1,1,0,0,0,12,19ZM18.36,17A1,1,0,0,0,17,18.36l.71.71a1,1,0,0,0,1.41,0,1,1,0,0,0,0-1.41ZM12,6.5A5.5,5.5,0,1,0,17.5,12,5.51,5.51,0,0,0,12,6.5Zm0,9A3.5,3.5,0,1,1,15.5,12,3.5,3.5,0,0,1,12,15.5Z"/>
+        </svg>
+        <!-- 月アイコン (ダークモード時表示) -->
+        <svg class="swap-on fill-current w-6 h-6" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+          <path d="M21.64,13a1,1,0,0,0-1.05-.14,8.05,8.05,0,0,1-3.37.73A8.15,8.15,0,0,1,9.08,5.49a8.59,8.59,0,0,1,.25-2A1,1,0,0,0,8,2.36,10.14,10.14,0,1,0,22,14.05,1,1,0,0,0,21.64,13Zm-9.5,6.69A8.14,8.14,0,0,1,7.08,5.22v.27A10.15,10.15,0,0,0,17.22,15.63a9.79,9.79,0,0,0,2.1-.22A8.11,8.11,0,0,1,12.14,19.73Z"/>
+        </svg>
+      </label>
+      {% if user.is_authenticated %}
+        <a href="{% url 'accounts:profile_settings' %}" class="avatar cursor-pointer group relative transition-link">
+          <div class="w-8 rounded-full ring-2 ring-primary/30 ring-offset-2 ring-offset-base-100 group-hover:ring-primary transition-all duration-200 hover:scale-110">
+            <img src="{{ user.profile.get_avatar_url }}" alt="{{ user.username }}アイコン" class="rounded-full" />
+          </div>
+          <!-- ホバー時のツールチップ -->
+          <div class="absolute top-12 right-0 z-[200] invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all duration-200 transform translate-y-2 group-hover:translate-y-0">
+            <div class="bg-base-100 rounded-lg shadow-lg p-3 min-w-[150px] border border-base-content/10">
+              <p class="text-sm font-medium">{{ user.username }}</p>
+              <p class="text-xs text-base-content/60 mt-1">アカウント設定</p>
+            </div>
+            <!-- 三角形の矢印 -->
+            <div class="absolute right-4 -top-2 w-4 h-4 bg-base-100 border-l border-t border-base-content/10 transform rotate-45"></div>
+          </div>
+        </a>
+      {% else %}
+        <div class="avatar">
+          <div class="w-8 rounded-full">
+            <img src="https://i.pravatar.cc/100" />
+          </div>
+        </div>
+      {% endif %}
+    </div>
+  </header>
+
+  <!-- モバイルヘッダー -->
+  <header class="navbar bg-base-200 px-4 mobile-header">
+    <div class="flex-none">
+      <button id="mobile-menu-btn" class="btn btn-square btn-ghost">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+        </svg>
+      </button>
+    </div>
+    <div class="flex-1 flex justify-center">
+      <a href="/" class="inline-block">
+        <img id="mobile-logo-image" src="{% static 'images/logo.png' %}" alt="KokkoSofter" class="h-10" />
+      </a>
+    </div>
+    <div class="flex-none gap-2">
+      <label class="swap swap-rotate cursor-pointer">
+        <input type="checkbox" id="mobile-theme-toggle" class="theme-controller" />
+        <!-- 太陽アイコン -->
+        <svg class="swap-off fill-current w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+          <path d="M5.64,17l-.71.71a1,1,0,0,0,0,1.41,1,1,0,0,0,1.41,0l.71-.71A1,1,0,0,0,5.64,17ZM5,12a1,1,0,0,0-1-1H3a1,1,0,0,0,0,2H4A1,1,0,0,0,5,12Zm7-7a1,1,0,0,0,1-1V3a1,1,0,0,0-2,0V4A1,1,0,0,0,12,5ZM5.64,7.05a1,1,0,0,0,.7.29,1,1,0,0,0,.71-.29,1,1,0,0,0,0-1.41l-.71-.71A1,1,0,0,0,4.93,6.34Zm12,.29a1,1,0,0,0,.7-.29l.71-.71a1,1,0,1,0-1.41-1.41L17,5.64a1,1,0,0,0,0,1.41A1,1,0,0,0,17.66,7.34ZM21,11H20a1,1,0,0,0,0,2h1a1,1,0,0,0,0-2Zm-9,8a1,1,0,0,0-1,1v1a1,1,0,0,0,2,0V20A1,1,0,0,0,12,19ZM18.36,17A1,1,0,0,0,17,18.36l.71.71a1,1,0,0,0,1.41,0,1,1,0,0,0,0-1.41ZM12,6.5A5.5,5.5,0,1,0,17.5,12,5.51,5.51,0,0,0,12,6.5Zm0,9A3.5,3.5,0,1,1,15.5,12,3.5,3.5,0,0,1,12,15.5Z"/>
+        </svg>
+        <!-- 月アイコン -->
+        <svg class="swap-on fill-current w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+          <path d="M21.64,13a1,1,0,0,0-1.05-.14,8.05,8.05,0,0,1-3.37.73A8.15,8.15,0,0,1,9.08,5.49a8.59,8.59,0,0,1,.25-2A1,1,0,0,0,8,2.36,10.14,10.14,0,1,0,22,14.05,1,1,0,0,0,21.64,13Zm-9.5,6.69A8.14,8.14,0,0,1,7.08,5.22v.27A10.15,10.15,0,0,0,17.22,15.63a9.79,9.79,0,0,0,2.1-.22A8.11,8.11,0,0,1,12.14,19.73Z"/>
+        </svg>
+      </label>
+      {% if user.is_authenticated %}
+        <a href="{% url 'accounts:profile_settings' %}" class="avatar cursor-pointer transition-link">
+          <div class="w-8 rounded-full">
+            <img src="{{ user.profile.get_avatar_url }}" alt="{{ user.username }}のアイコン" class="rounded-full" />
+          </div>
+        </a>
+      {% else %}
+        <label for="modal-login" class="btn btn-sm btn-primary">ログイン</label>
+      {% endif %}
+    </div>
+  </header>
+
+  <!-- モバイル用サイドバーバックドロップ -->
+  <div id="sidebar-backdrop" class="sidebar-backdrop"></div>
+
+  <!-- ページ遷移ローディング -->
+  <div id="page-transition-overlay" class="page-transition-overlay">
+    <div class="flex flex-col items-center">
+      <div class="page-transition-spinner mb-4"></div>
+      <p class="text-white text-sm font-medium">読み込み中...</p>
+    </div>
+  </div>
+
+  <div class="flex min-h-screen bg-base-200 relative page-content" id="page-content">
+
+    <!-- サイドバー -->
+    <aside id="mobile-sidebar" class="w-60 bg-base-300 p-4 rounded-lg shadow-lg sidebar-sticky sidebar-left sidebar-mobile sidebar-full-height fixed md:sticky md:top-0 z-50 md:h-auto h-full">
+      <div class="h-full flex flex-col">
+      <!-- モバイル用クローズボタン -->
+      <div class="flex justify-between items-center md:hidden mb-4 flex-shrink-0">
+        <h2 class="text-lg font-bold">メニュー</h2>
+        <button id="mobile-close-btn" class="btn btn-square btn-ghost btn-sm">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
+      </div>
+      {% if user.is_authenticated %}
+        <!-- アカウント情報 -->
+        <div class="mb-6 p-3 bg-base-100 rounded-lg">
+          <div class="flex items-center space-x-3 mb-3">
+            <div class="avatar">
+              <div class="w-12 rounded-full">
+                <img src="{{ user.profile.get_avatar_url }}" alt="{{ user.username }}のアイコン" />
+              </div>
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="font-semibold truncate">{{ user.username }}</p>
+              <p class="text-xs text-base-content/60 truncate">
+                {% if user.first_name or user.last_name %}
+                  {{ user.first_name }} {{ user.last_name }}
+                {% else %}
+                  KokkoSoftのメンバー
+                {% endif %}
+              </p>
+            </div>
+          </div>
+          <a href="{% url 'accounts:profile_settings' %}" class="btn btn-xs btn-outline w-full transition-link">
+            ⚙️ アカウント設定
+          </a>
+        </div>
+      {% endif %}
+
+      <div class="flex-grow">
+        <nav class="bg-base-100 p-3 rounded-lg mb-4">
+          <h3 class="text-sm font-semibold mb-3 text-base-content flex items-center">
+            📱 <span class="ml-2">メニュー</span>
+          </h3>
+          <ul class="menu text-base space-y-1">
+            <li><a href="/" class="rounded-lg hover:bg-primary hover:text-primary-content transition-colors text-base-content transition-link">🏠 ホーム</a></li>
+            <li><label for="modal-post" class="cursor-pointer rounded-lg hover:bg-primary hover:text-primary-content transition-colors text-base-content">📝 新規投稿</label></li>
+            <li><a class="rounded-lg hover:bg-primary hover:text-primary-content transition-colors text-base-content">📅 カレンダー</a></li>
+            <li><a class="rounded-lg hover:bg-primary hover:text-primary-content transition-colors text-base-content">📁 ファイル置き場</a></li>
+            <li><a class="rounded-lg hover:bg-primary hover:text-primary-content transition-colors text-base-content">✅ Todoリスト</a></li>
+            <li><a href="{% url 'accounts:profile_settings' %}" class="rounded-lg hover:bg-primary hover:text-primary-content transition-colors text-base-content transition-link">⚙️ 設定</a></li>
+          </ul>
+        </nav>
+        
+        <div class="mt-4 space-y-2">
+          {% if user.is_authenticated %}
+            <label for="modal-post" class="btn btn-primary btn-sm w-full shadow-lg">
+              ✨ 新規投稿
+            </label>
+            <label for="logout-modal" class="btn btn-outline btn-sm w-full">
+              🚪 ログアウト
+            </label>
+          {% else %}
+            <label for="modal-login" class="btn btn-primary btn-sm w-full shadow-lg">
+              🔐 ログイン
+            </label>
+          {% endif %}
+        </div>
+      </div>
+        
+      <!-- フィラー（余白を埋めて背景を下まで伸ばす） -->
+      <div class="flex-grow"></div>
+      </div>
+    </aside>
+
+    <!-- メインコンテンツ -->
+    <main class="max-w-3xl w-full mx-auto p-6 rounded-xl shadow-lg overflow-hidden main-content bg-base-100 border border-base-content/10">
+      {% block page_title %}
+        <!-- デフォルトではページタイトルを表示しない -->
+      {% endblock %}
+      {% block content %}{% endblock %}
+    </main>
+
+    <!-- 右サイドバー -->
+    <aside class="w-60 bg-base-300 p-4 rounded-lg shadow-lg sidebar-sticky sidebar-right sidebar-full-height">
+      <div class="h-full flex flex-col">
+        <div class="bg-base-100 p-3 rounded-lg mb-4">
+          <h2 class="text-lg font-bold mb-3 text-success flex items-center">
+            🟢 <span class="ml-2">オンライン</span>
+          </h2>
+          <ul class="space-y-2">
+            <li class="flex items-center space-x-2">
+              <span class="badge badge-error badge-xs"></span>
+              <span>はたね</span>
+            </li>
+            <li class="flex items-center space-x-2">
+              <span class="badge badge-primary badge-xs"></span>
+              <span>ふらめん</span>
+            </li>
+            <li class="flex items-center space-x-2">
+              <span class="badge badge-warning badge-xs"></span>
+              <span>いせえび</span>
+            </li>
+            <li class="flex items-center space-x-2">
+              <span class="badge badge-secondary badge-xs"></span>
+              <span>ささおか</span>
+            </li>
+            <li class="flex items-center space-x-2">
+              <span class="badge badge-info badge-xs"></span>
+              <span>どろぷす</span>
+            </li>
+          </ul>
+        </div>
+        
+        <div class="bg-base-100 p-3 rounded-lg mb-4">
+          <h2 class="text-lg font-bold mb-3 text-warning flex items-center">
+            🔔 <span class="ml-2">通知</span>
+          </h2>
+          <ul class="space-y-2 text-sm">
+            <li class="p-2 bg-base-100/50 rounded border-l-4 border-primary">
+              @いせえび があなたをメンションしました
+            </li>
+            <li class="p-2 bg-base-100/50 rounded border-l-4 border-secondary">
+              「うんこ　うんこ」の予定が追加されました
+            </li>
+          </ul>
+        </div>
+        
+        <!-- デジタル時計 -->
+        <div class="bg-base-100 p-3 rounded-lg mb-4 text-center">
+          <h3 class="text-sm font-semibold mb-3 flex items-center justify-center text-accent">
+            🕐 <span class="ml-2">現在時刻</span>
+          </h3>
+          <div id="digital-clock" class="text-xl font-mono font-bold text-primary mb-1">
+            --:--:--
+          </div>
+          <div id="digital-date" class="text-sm text-base-content/70">
+            ----年--月--日
+          </div>
+        </div>
+
+        <!-- 天気情報 -->
+        <div class="bg-base-100 p-3 rounded-lg mb-4">
+          <h3 class="text-sm font-semibold mb-3 flex items-center text-info">
+            🌤️ <span class="ml-2">天気情報</span>
+          </h3>
+          <div id="weather-content">
+            <div id="weather-loading" class="text-sm text-base-content/60 text-center">
+              <span class="loading loading-spinner loading-sm mr-2"></span>
+              位置情報を取得中...
+            </div>
+            <div id="weather-data" class="hidden">
+              <div class="text-sm">
+                <div id="weather-location" class="font-medium text-primary mb-1"></div>
+                <div id="weather-area" class="text-xs text-base-content/70 mb-2"></div>
+                <div id="weather-desc" class="text-base-content/80 mb-2 p-2 bg-base-100/50 rounded"></div>
+                <div id="weather-temp" class="text-lg font-bold text-accent"></div>
+                <div id="weather-time" class="text-xs text-base-content/60 mt-1"></div>
+              </div>
+            </div>
+            <div id="weather-error" class="hidden text-sm text-error">
+              天気情報を取得できませんでした
+              <button id="weather-retry" class="btn btn-xs btn-outline btn-primary ml-2">再試行</button>
+            </div>
+          </div>
+        </div>
+        
+        <!-- デバッグ用ボタン（開発時のみ） -->
+        <div class="bg-base-100 p-3 rounded-lg mb-4">
+          <h3 class="text-sm font-semibold mb-3 flex items-center text-warning">
+            🔧 <span class="ml-2">デバッグ</span>
+                <span class="text-xs text-base-content/60 ml-2">(開発者向け)</span>
+            </h3>
+          <button onclick="testTransition()" class="btn btn-xs btn-outline btn-warning w-full">
+            遷移テスト
+          </button>
+        </div>
+        
+        <!-- フィラー（余白を埋めて背景を下まで伸ばす） -->
+        <div class="flex-grow"></div>
+      </div>
+    </aside>
+  </div>
+
+  <!-- 画像ビューワー -->
+  <div class="image-viewer" id="imageViewer">
+    <button class="close-btn" onclick="closeImageViewer()">×</button>
+    <img id="viewerImage" src="" alt="拡大画像" />
+  </div>
+
+  <!-- ログインモーダル -->
+  <input type="checkbox" id="modal-login" class="modal-toggle" {% if form.errors %}checked{% endif %} />
+  <div class="modal">
+    <div id="modal-loginBox" class="modal-box relative max-w-md w-full">
+      <label for="modal-login" class="btn btn-sm btn-circle absolute right-2 top-2">✕</label>
+      <h3 class="font-bold text-lg drag-handle cursor-move mb-4">ログイン</h3>
+      <form method="post" action="{% url 'accounts:login' %}" class="space-y-4">
+        {% csrf_token %}
+        <input type="text" name="username" placeholder="ユーザー名" class="input input-bordered w-full" required />
+        <input type="password" name="password" placeholder="パスワード" class="input input-bordered w-full" required />
+        <button type="submit" class="btn btn-primary w-full">ログイン</button>
+        {% if form.errors %}
+          <p class="text-red-500">ユーザー名またはパスワードが違います。</p>
+        {% endif %}
+      </form>
+    </div>
+  </div>
+
+  <!-- 投稿モーダル -->
+  <input type="checkbox" id="modal-post" class="modal-toggle" />
+  <div class="modal">
+    <div id="postModalBox" class="modal-box relative w-[90vw] max-w-4xl h-[80vh] overflow-hidden">
+      <label for="modal-post" class="btn btn-sm btn-circle absolute right-2 top-2">✕</label>
+      <h3 class="font-bold text-lg drag-handle cursor-move mb-4">✏️ 新規投稿</h3>
+      
+      <form method="post" action="{% url 'posts:create' %}" enctype="multipart/form-data"
+            class="flex flex-col h-[calc(100%-4rem)] space-y-4">
+        {% csrf_token %}
+        
+        <!-- テキストエリア -->
+        <div class="form-control flex-grow">
+          <label class="label">
+            <span class="label-text font-semibold">投稿内容</span>
+            <span class="label-text-alt" id="post-char-count">0 / 1000文字</span>
+          </label>
+          <div class="relative flex-grow">
+            <textarea name="content" id="post-content" placeholder="進捗とか雑談とか" 
+                      class="textarea textarea-bordered w-full h-full resize-none text-base leading-relaxed p-4" 
+                      maxlength="1000" required></textarea>
+            <div class="absolute bottom-3 right-3 text-xs text-base-content/40">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+              </svg>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 画像アップロードエリア -->
+        <div class="form-control">
+          <label class="label">
+            <span class="label-text font-semibold">画像・ファイルを添付（任意）</span>
+          </label>
+          
+          <div class="relative">
+            <input type="file" name="image" id="post-image-input" class="hidden" accept="image/*" />
+            
+            <!-- プレビューエリア（画像選択後に表示） -->
+            <div id="image-preview" class="hidden mb-4 p-4 bg-base-200 rounded-lg border border-base-content/10">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-sm font-medium text-success">💾 ファイルが添付されました</span>
+                <button type="button" id="remove-image" class="btn btn-xs btn-error btn-outline">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1-1H8a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                  削除
+                </button>
+              </div>
+              <div class="flex items-center space-x-3">
+                <img id="preview-image" src="" alt="プレビュー" class="w-16 h-16 object-cover rounded-lg" />
+                <div>
+                  <p id="image-name" class="text-sm font-medium"></p>
+                  <p id="image-size" class="text-xs text-base-content/60"></p>
+                </div>
+              </div>
+            </div>
+            
+            <!-- ドラッグ&ドロップエリア -->
+            <div id="post-drop-zone" class="border-2 border-dashed border-base-content/20 rounded-lg p-8 text-center hover:border-primary/60 hover:bg-primary/5 transition-all duration-300 cursor-pointer group" onclick="document.getElementById('post-image-input').click()">
+              <div class="transition-all duration-300 group-hover:scale-105">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-base-content/30 group-hover:text-primary/70 mb-3 transition-colors duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                <p class="text-base-content/60 mb-1 font-medium group-hover:text-primary/80 transition-colors">クリックして画像やファイルを選択</p>
+                <p class="text-sm text-base-content/40 group-hover:text-primary/60 transition-colors">またはここにドラッグ&ドロップ</p>
+              </div>
+              
+              <!-- ドラッグ中のオーバーレイ -->
+              <div id="post-drag-overlay" class="absolute inset-0 bg-primary/10 border-2 border-primary rounded-lg flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-200">
+                <div class="text-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 mx-auto text-primary mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                  </svg>
+                  <p class="font-bold text-primary">ここにドロップ！</p>
+                </div>
+              </div>
+            </div>
+            
+            <div class="mt-2 text-xs text-base-content/60 flex items-center">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              JPG, PNG, GIF, PDF, DOC形式 / 最大10MB
+            </div>
+          </div>
+        </div>
+        
+        <!-- 投稿ボタン -->
+        <div class="flex space-x-3 pt-2">
+          <label for="modal-post" class="btn btn-outline flex-1">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+            キャンセル
+          </label>
+          <button type="submit" class="btn btn-primary flex-1" id="post-submit-btn">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+            </svg>
+            投稿する
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ログアウトモーダル -->
+  <input type="checkbox" id="logout-modal" class="modal-toggle" />
+  <div class="modal">
+    <div id="logout-modalBox" class="modal-box max-w-md">
+      <h3 class="font-bold text-lg">ログアウトしますか？</h3>
+      <p class="py-4">本当にログアウトしてもよろしいですか？</p>
+      <div class="modal-action">
+        <label for="logout-modal" class="btn">キャンセル</label>
+        <form method="post" action="{% url 'accounts:logout' %}">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-error">ログアウト</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- JavaScript -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const modals = [
+        { id: 'modal-login', box: 'modal-loginBox' },
+        { id: 'modal-post', box: 'postModalBox' },
+        { id: 'logout-modal', box: 'logout-modalBox' }
+      ];
+
+      modals.forEach(({ id, box }) => {
+        const modalInput = document.getElementById(id);
+        const modalBox = document.getElementById(box);
+        const modal = modalInput ? modalInput.closest('.modal') : null;
+
+        if (modalInput && modalBox && modal) {
+          // 背景クリックでモーダルを閉じる
+          modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+              modalInput.checked = false;
+            }
+          });
+          
+          // モーダルボックス自体のクリックを停止（背景クリック判定を防ぐ）
+          modalBox.addEventListener('click', (e) => {
+            e.stopPropagation();
+          });
+        }
+      });
+
+      // ドラッグ移動（ログイン・投稿）
+      function enableDrag(modalBoxId) {
+        const modalBox = document.getElementById(modalBoxId);
+        if (!modalBox) return;
+        const header = modalBox.querySelector('.drag-handle');
+        if (!header) return;
+        
+        let isDragging = false, offsetX = 0, offsetY = 0;
+
+        header.addEventListener('mousedown', (e) => {
+          isDragging = true;
+          const rect = modalBox.getBoundingClientRect();
+          offsetX = e.clientX - rect.left;
+          offsetY = e.clientY - rect.top;
+          modalBox.style.position = 'fixed';
+          modalBox.style.left = `${rect.left}px`;
+          modalBox.style.top = `${rect.top}px`;
+          modalBox.style.margin = '0';
+          modalBox.style.transform = 'none';
+          modalBox.style.zIndex = 9999;
+        });
+
+        document.addEventListener('mousemove', (e) => {
+          if (!isDragging) return;
+          modalBox.style.left = `${e.clientX - offsetX}px`;
+          modalBox.style.top = `${e.clientY - offsetY}px`;
+        });
+
+        document.addEventListener('mouseup', () => {
+          isDragging = false;
+        });
+      }
+
+      enableDrag('modal-loginBox');
+      enableDrag('postModalBox');
+
+      // 画像ビューワー機能を初期化
+      setupImageViewer();
+
+      // ツールチップの位置調整
+      setupTooltipPositioning();
+
+      // いいねボタンの機能
+      setupLikeButtons();
+
+      // 天気情報を初期化
+      setupWeatherRetry();
+      loadWeatherInfo();
+
+      // デジタル時計を初期化
+      initDigitalClock();
+
+      // テーマ切り替えを初期化
+      initThemeToggle();
+
+      // ESCキーでモーダルを閉じる機能
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          // 開いているモーダルを閉じる
+          modals.forEach(({ id }) => {
+            const modalInput = document.getElementById(id);
+            if (modalInput && modalInput.checked) {
+              modalInput.checked = false;
+            }
+          });
+        }
+      });
+    });
+
+    // ツールチップの位置調整機能
+    function setupTooltipPositioning() {
+      const avatars = document.querySelectorAll('.avatar.cursor-pointer.relative.group');
+      
+      avatars.forEach(avatar => {
+        const tooltip = avatar.querySelector('.tooltip-overlay');
+        if (!tooltip) return;
+        
+        // ツールチップをbodyの直下に移動（ポータル化）
+        document.body.appendChild(tooltip);
+        
+        let hoverTimeout;
+        let isVisible = false;
+        
+        avatar.addEventListener('mouseenter', function() {
+          // 1秒後にツールチップを表示
+          hoverTimeout = setTimeout(() => {
+            const rect = this.getBoundingClientRect();
+            tooltip.style.left = rect.left + 'px';
+            tooltip.style.top = (rect.bottom + 10) + 'px';
+            tooltip.style.display = 'block';
+            tooltip.style.opacity = '1';
+            tooltip.style.transform = 'translateY(0)';
+            isVisible = true;
+          }, 1000); // 1秒の遅延
+        });
+        
+        avatar.addEventListener('mouseleave', function() {
+          // ホバー終了時はタイムアウトをクリアして即座に非表示
+          clearTimeout(hoverTimeout);
+          
+          if (isVisible) {
+            tooltip.style.opacity = '0';
+            tooltip.style.transform = 'translateY(8px)';
+            setTimeout(() => {
+              tooltip.style.display = 'none';
+              isVisible = false;
+            }, 300);
+          }
+        });
+      });
+    }
+
+    // 画像ビューワーのセットアップ
+    function setupImageViewer() {
+      const images = document.querySelectorAll('.post-image');
+      
+      images.forEach(img => {
+        if (!img.hasAttribute('data-viewer-attached')) {
+          img.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            openImageViewer(img.src);
+          });
+          img.setAttribute('data-viewer-attached', 'true');
+        }
+      });
+
+      // 画像ビューワーの背景クリックで閉じる
+      const viewer = document.getElementById('imageViewer');
+      if (viewer) {
+        viewer.addEventListener('click', (e) => {
+          if (e.target === viewer) {
+            closeImageViewer();
+          }
+        });
+      }
+
+      // ESCキーで画像ビューワーを閉じる
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          closeImageViewer();
+        }
+      });
+    }
+
+    // 画像ビューワーを開く
+    function openImageViewer(imageSrc) {
+      const viewer = document.getElementById('imageViewer');
+      const viewerImage = document.getElementById('viewerImage');
+      
+      if (viewer && viewerImage && imageSrc) {
+        viewerImage.src = imageSrc;
+        viewer.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+        
+        // 画像の読み込み完了を待つ
+        viewerImage.onload = function() {
+          // 画像が非常に大きい場合の追加制限
+          const naturalWidth = this.naturalWidth;
+          const naturalHeight = this.naturalHeight;
+          const maxDisplayWidth = window.innerWidth * 0.8;
+          const maxDisplayHeight = window.innerHeight * 0.8;
+          
+          if (naturalWidth > maxDisplayWidth || naturalHeight > maxDisplayHeight) {
+            const ratio = Math.min(maxDisplayWidth / naturalWidth, maxDisplayHeight / naturalHeight);
+            this.style.width = (naturalWidth * ratio) + 'px';
+            this.style.height = (naturalHeight * ratio) + 'px';
+          }
+        };
+      }
+    }
+
+    // 画像ビューワーを閉じる
+    function closeImageViewer() {
+      const viewer = document.getElementById('imageViewer');
+      const viewerImage = document.getElementById('viewerImage');
+      
+      if (viewer) {
+        viewer.style.display = 'none';
+        document.body.style.overflow = 'auto';
+        
+        if (viewerImage) {
+          viewerImage.src = '';
+          viewerImage.style.width = 'auto';
+          viewerImage.style.height = 'auto';
+        }
+      }
+    }
+
+    // いいねボタンのセットアップ
+    function setupLikeButtons() {
+      document.querySelectorAll('.post-like-btn').forEach(button => {
+        button.addEventListener('click', async (e) => {
+          e.preventDefault();
+
+          const postId = button.dataset.postId;
+          const url = `/posts/like/${postId}/`;
+
+          try {
+            const response = await fetch(url, {
+              method: 'POST',
+              headers: {
+                'X-CSRFToken': getCookie('csrftoken'),
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({}),
+            });
+
+            if (!response.ok) throw new Error('Network response was not ok');
+
+            const data = await response.json();
+
+            // ボタンの表示を更新
+            button.querySelector('.like-count').textContent = data.like_count;
+
+            if (data.liked) {
+              button.classList.add('btn-primary');
+              button.classList.remove('btn-outline');
+            } else {
+              button.classList.remove('btn-primary');
+              button.classList.add('btn-outline');
+            }
+          } catch (error) {
+            console.error('Error:', error);
+          }
+        });
+      });
+    }
+
+    // CSRFトークンをcookieから取得する関数
+    function getCookie(name) {
+      let cookieValue = null;
+      if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let cookie of cookies) {
+          cookie = cookie.trim();
+          if (cookie.startsWith(name + '=')) {
+            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+            break;
+          }
+        }
+      }
+      return cookieValue;
+    }
+
+    // 天気情報を取得する関数
+    async function fetchWeatherData(lat, lon) {
+      try {
+        const response = await fetch('/api/weather/', {
+          method: 'POST',
+          headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ lat: lat, lon: lon }),
+        });
+
+        if (!response.ok) throw new Error('Network response was not ok');
+        return await response.json();
+      } catch (error) {
+        console.error('Weather API error:', error);
+        return { success: false, error: error.message };
+      }
+    }
+
+    // 位置情報を取得して天気を表示
+    function loadWeatherInfo() {
+      const loadingEl = document.getElementById('weather-loading');
+      const dataEl = document.getElementById('weather-data');
+      const errorEl = document.getElementById('weather-error');
+
+      if (!navigator.geolocation) {
+        loadingEl.classList.add('hidden');
+        errorEl.classList.remove('hidden');
+        errorEl.textContent = '位置情報がサポートされていません';
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const lat = position.coords.latitude;
+          const lon = position.coords.longitude;
+
+          const result = await fetchWeatherData(lat, lon);
+
+          loadingEl.classList.add('hidden');
+
+          if (result.success && result.data) {
+            const weather = result.data;
+            
+            // 都道府県・市町村名を表示
+            const locationText = [weather.prefecture, weather.city].filter(Boolean).join(' ');
+            document.getElementById('weather-location').textContent = locationText || '位置不明';
+            
+            document.getElementById('weather-area').textContent = weather.area_name || '地域不明';
+            document.getElementById('weather-desc').textContent = weather.weather || '情報なし';
+            document.getElementById('weather-temp').textContent = weather.temperature || '';
+            
+            // 更新時間を表示
+            if (weather.update_time) {
+              const updateTime = new Date(weather.update_time);
+              const timeStr = updateTime.toLocaleString('ja-JP', {
+                month: 'numeric',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+              });
+              document.getElementById('weather-time').textContent = `更新: ${timeStr}`;
+            }
+
+            dataEl.classList.remove('hidden');
+          } else {
+            errorEl.classList.remove('hidden');
+            if (result.error) {
+              errorEl.firstChild.textContent = result.error;
+            }
+          }
+        },
+        (error) => {
+          loadingEl.classList.add('hidden');
+          errorEl.classList.remove('hidden');
+          
+          let errorMessage = '位置情報の取得に失敗しました';
+          switch (error.code) {
+            case error.PERMISSION_DENIED:
+              errorMessage = '位置情報の取得が拒否されました';
+              break;
+            case error.POSITION_UNAVAILABLE:
+              errorMessage = '位置情報が利用できません';
+              break;
+            case error.TIMEOUT:
+              errorMessage = '位置情報の取得がタイムアウトしました';
+              break;
+          }
+          
+          errorEl.firstChild.textContent = errorMessage;
+        },
+        {
+          timeout: 10000,
+          enableHighAccuracy: false,
+          maximumAge: 600000 // 10分間キャッシュ
+        }
+      );
+    }
+
+    // 天気情報再試行ボタンのイベントリスナー
+    function setupWeatherRetry() {
+      const retryBtn = document.getElementById('weather-retry');
+      if (retryBtn) {
+        retryBtn.addEventListener('click', () => {
+          document.getElementById('weather-loading').classList.remove('hidden');
+          document.getElementById('weather-data').classList.add('hidden');
+          document.getElementById('weather-error').classList.add('hidden');
+          loadWeatherInfo();
+        });
+      }
+    }
+
+    // デジタル時計の更新
+    function updateDigitalClock() {
+      const now = new Date();
+      
+      // 時刻表示 (HH:MM:SS)
+      const timeString = now.toLocaleTimeString('ja-JP', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+      });
+      
+      // 日付表示 (YYYY年MM月DD日 曜日)
+      const dateString = now.toLocaleDateString('ja-JP', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        weekday: 'short'
+      });
+      
+      const clockEl = document.getElementById('digital-clock');
+      const dateEl = document.getElementById('digital-date');
+      
+      if (clockEl) clockEl.textContent = timeString;
+      if (dateEl) dateEl.textContent = dateString;
+    }
+
+    // デジタル時計を初期化
+    function initDigitalClock() {
+      updateDigitalClock(); // 即座に更新
+      setInterval(updateDigitalClock, 1000); // 1秒ごとに更新
+    }
+
+    // テーマ切り替え機能
+    function initThemeToggle() {
+      const themeToggle = document.getElementById('theme-toggle');
+      const htmlElement = document.documentElement;
+      
+      // システムのテーマを取得
+      function getSystemTheme() {
+        return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      }
+      
+      // 保存されたテーマまたはシステムテーマを取得
+      function getCurrentTheme() {
+        const savedTheme = localStorage.getItem('theme');
+        return savedTheme || getSystemTheme();
+      }
+      
+      // テーマを適用
+      function applyTheme(theme) {
+        const logoImage = document.getElementById('logo-image');
+        const mobileLogoImage = document.getElementById('mobile-logo-image');
+        
+        if (theme === 'dark') {
+          htmlElement.setAttribute('data-theme', 'dark');
+          themeToggle.checked = true;
+          if (logoImage) {
+            logoImage.src = "{% static 'images/logo.png' %}";
+          }
+          if (mobileLogoImage) {
+            mobileLogoImage.src = "{% static 'images/logo.png' %}";
+          }
+        } else {
+          htmlElement.setAttribute('data-theme', 'light');
+          themeToggle.checked = false;
+          if (logoImage) {
+            logoImage.src = "{% static 'images/logo1.png' %}";
+          }
+          if (mobileLogoImage) {
+            mobileLogoImage.src = "{% static 'images/logo1.png' %}";
+          }
+        }
+        localStorage.setItem('theme', theme);
+      }
+      
+      // 初期テーマを設定
+      const currentTheme = getCurrentTheme();
+      applyTheme(currentTheme);
+      
+      // モバイルテーマトグルも同期
+      const mobileThemeToggle = document.getElementById('mobile-theme-toggle');
+      if (mobileThemeToggle) {
+        mobileThemeToggle.checked = (currentTheme === 'dark');
+      }
+      
+      // テーマ切り替えイベント
+      themeToggle.addEventListener('change', function() {
+        const newTheme = this.checked ? 'dark' : 'light';
+        applyTheme(newTheme);
+        
+        // モバイルトグルも同期
+        const mobileThemeToggle = document.getElementById('mobile-theme-toggle');
+        if (mobileThemeToggle) {
+          mobileThemeToggle.checked = this.checked;
+        }
+      });
+      
+      // システムテーマ変更の監視
+      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(e) {
+        // 保存されたテーマがない場合のみシステムテーマに従う
+        if (!localStorage.getItem('theme')) {
+          applyTheme(e.matches ? 'dark' : 'light');
+        }
+      });
+    }
+
+    // ページ読み込み後と新しい画像追加時に呼び出す関数
+    function refreshImageViewer() {
+      setupImageViewer();
+    }
+
+    // 投稿モーダルの機能セットアップ
+    function setupPostModal() {
+      const contentTextarea = document.getElementById('post-content');
+      const charCount = document.getElementById('post-char-count');
+      const dropZone = document.getElementById('post-drop-zone');
+      const dragOverlay = document.getElementById('post-drag-overlay');
+      const fileInput = document.getElementById('post-image-input');
+      const imagePreview = document.getElementById('image-preview');
+      const previewImage = document.getElementById('preview-image');
+      const imageName = document.getElementById('image-name');
+      const imageSize = document.getElementById('image-size');
+      const removeImageBtn = document.getElementById('remove-image');
+      const postSubmitBtn = document.getElementById('post-submit-btn');
+      const postForm = postSubmitBtn ? postSubmitBtn.closest('form') : null;
+
+      // 投稿フォーム送信時の遷移効果
+      if (postForm && postSubmitBtn) {
+        postForm.addEventListener('submit', function(e) {
+          e.preventDefault();
+          
+          // バリデーション
+          const content = contentTextarea ? contentTextarea.value.trim() : '';
+          if (!content) {
+            alert('投稿内容を入力してください');
+            return;
+          }
+          
+          // ボタンを無効化
+          postSubmitBtn.disabled = true;
+          postSubmitBtn.innerHTML = `
+            <span class="loading loading-spinner loading-sm mr-2"></span>
+            投稿中...
+          `;
+          
+          // ページ遷移効果を表示
+          showPageTransition();
+          
+          // 少し遅延してフォーム送信
+          setTimeout(() => {
+            this.submit();
+          }, 500);
+        });
+      }
+
+      // ...existing code...
+      if (contentTextarea && charCount) {
+        function updateCharCount() {
+          const currentLength = contentTextarea.value.length;
+          const maxLength = 1000;
+          
+          charCount.textContent = `${currentLength} / ${maxLength}文字`;
+          
+          if (currentLength > maxLength * 0.9) {
+            charCount.classList.add('text-warning');
+          } else {
+            charCount.classList.remove('text-warning');
+          }
+          
+          if (currentLength > maxLength) {
+            charCount.classList.add('text-error');
+            charCount.classList.remove('text-warning');
+          } else {
+            charCount.classList.remove('text-error');
+          }
+        }
+        
+        updateCharCount();
+        contentTextarea.addEventListener('input', updateCharCount);
+      }
+
+      // ドラッグ&ドロップ機能
+      if (dropZone && fileInput) {
+        let dragCounter = 0;
+        
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+          dropZone.addEventListener(eventName, preventDefaults, false);
+          document.body.addEventListener(eventName, preventDefaults, false);
+        });
+        
+        function preventDefaults(e) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+        
+        dropZone.addEventListener('dragenter', function(e) {
+          dragCounter++;
+          if (dragOverlay) {
+            dragOverlay.style.opacity = '1';
+          }
+        });
+        
+        dropZone.addEventListener('dragleave', function(e) {
+          dragCounter--;
+          if (dragCounter <= 0 && dragOverlay) {
+            dragOverlay.style.opacity = '0';
+          }
+        });
+        
+        dropZone.addEventListener('drop', function(e) {
+          dragCounter = 0;
+          if (dragOverlay) {
+            dragOverlay.style.opacity = '0';
+          }
+          handleFileDrop(e);
+        });
+        
+        function handleFileDrop(e) {
+          const files = e.dataTransfer.files;
+          if (files.length > 0) {
+            handleFileSelect(files[0]);
+          }
+        }
+        
+        // ファイル選択時の処理
+        fileInput.addEventListener('change', function(e) {
+          if (e.target.files.length > 0) {
+            handleFileSelect(e.target.files[0]);
+          }
+        });
+        
+        function handleFileSelect(file) {
+          if (!file.type.startsWith('image/')) {
+            alert('画像ファイルかPDF、DOCファイルをお願いします！');
+            return;
+          }
+          
+          if (file.size > 10 * 1024 * 1024) { // 10MB制限
+            alert('ファイルサイズ10MB以下でお願いします🙏');
+            return;
+          }
+          
+          // プレビュー表示
+          if (imagePreview && previewImage && imageName && imageSize) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+              previewImage.src = e.target.result;
+              imageName.textContent = file.name;
+              imageSize.textContent = (file.size / 1024 / 1024).toFixed(2) + 'MB';
+              
+              imagePreview.classList.remove('hidden');
+              dropZone.classList.add('hidden');
+            };
+            reader.readAsDataURL(file);
+          }
+          
+          // ファイル入力に設定
+          const dt = new DataTransfer();
+          dt.items.add(file);
+          fileInput.files = dt.files;
+        }
+        
+        // 画像削除ボタン
+        if (removeImageBtn) {
+          removeImageBtn.addEventListener('click', function() {
+            fileInput.value = '';
+            if (imagePreview && dropZone) {
+              imagePreview.classList.add('hidden');
+              dropZone.classList.remove('hidden');
+            }
+          });
+        }
+      }
+
+      // モーダルが閉じられた時にフォームをリセット
+      const modalToggle = document.getElementById('modal-post');
+      if (modalToggle) {
+        modalToggle.addEventListener('change', function() {
+          if (!this.checked) {
+            // モーダルが閉じられた時
+            if (contentTextarea) contentTextarea.value = '';
+            if (fileInput) fileInput.value = '';
+            if (imagePreview && dropZone) {
+              imagePreview.classList.add('hidden');
+              dropZone.classList.remove('hidden');
+            }
+            if (charCount) charCount.textContent = '0 / 1000文字';
+          }
+        });
+      }
+    }
+
+    // 初期化時に投稿モーダルもセットアップ
+    setupPostModal();
+
+    // モバイルメニュー機能
+    function setupMobileMenu() {
+      const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+      const mobileCloseBtn = document.getElementById('mobile-close-btn');
+      const mobileSidebar = document.getElementById('mobile-sidebar');
+      const sidebarBackdrop = document.getElementById('sidebar-backdrop');
+
+      console.log('Mobile menu setup:', { mobileMenuBtn, mobileCloseBtn, mobileSidebar, sidebarBackdrop });
+
+      function openMobileSidebar() {
+        console.log('Opening mobile sidebar');
+        if (mobileSidebar && sidebarBackdrop) {
+          mobileSidebar.classList.add('active');
+          sidebarBackdrop.classList.add('active');
+          document.body.style.overflow = 'hidden';
+        }
+      }
+
+      function closeMobileSidebar() {
+        console.log('Closing mobile sidebar');
+        if (mobileSidebar && sidebarBackdrop) {
+          mobileSidebar.classList.remove('active');
+          sidebarBackdrop.classList.remove('active');
+          document.body.style.overflow = '';
+        }
+      }
+
+      if (mobileMenuBtn) {
+        mobileMenuBtn.addEventListener('click', function(e) {
+          e.preventDefault();
+          console.log('Mobile menu button clicked');
+          openMobileSidebar();
+        });
+      }
+
+      if (mobileCloseBtn) {
+        mobileCloseBtn.addEventListener('click', closeMobileSidebar);
+      }
+
+      if (sidebarBackdrop) {
+        sidebarBackdrop.addEventListener('click', closeMobileSidebar);
+      }
+
+      // ESCキーでサイドバーを閉じる
+      document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+          closeMobileSidebar();
+        }
+      });
+    }
+
+    // モバイルテーマ切り替えの同期
+    function setupMobileThemeSync() {
+      const mobileThemeToggle = document.getElementById('mobile-theme-toggle');
+
+      if (mobileThemeToggle) {
+        mobileThemeToggle.addEventListener('change', function() {
+          const desktopThemeToggle = document.getElementById('theme-toggle');
+          if (desktopThemeToggle) {
+            desktopThemeToggle.checked = this.checked;
+            // イベントを発生させてテーマを適用
+            desktopThemeToggle.dispatchEvent(new Event('change'));
+          }
+        });
+      }
+    }
+
+    // モバイル機能を初期化
+    setupMobileMenu();
+    setupMobileThemeSync();
+    
+    // ページ遷移機能を初期化
+    setupPageTransitions();
+  </script>
+
+  <!-- ページ遷移用JavaScript -->
+  <script>
+    // ページ遷移機能のセットアップ
+    function setupPageTransitions() {
+      const transitionOverlay = document.getElementById('page-transition-overlay');
+      const pageContent = document.getElementById('page-content');
+      
+      console.log('Page transition setup:', { transitionOverlay, pageContent });
+      
+      // 動的にリンクを取得して処理
+      function attachTransitionToLinks() {
+        const transitionLinks = document.querySelectorAll('.transition-link');
+        console.log('Found transition links:', transitionLinks.length);
+        
+        transitionLinks.forEach((link, index) => {
+          if (!link.hasAttribute('data-transition-attached')) {
+            console.log(`Attaching transition to link ${index}:`, link.href);
+            
+            link.addEventListener('click', function(e) {
+              const href = this.getAttribute('href');
+              console.log('Link clicked:', href);
+              
+              // 外部リンクや#リンクは除外
+              if (!href || href.startsWith('#') || href.startsWith('http') || href.startsWith('mailto:') || href.startsWith('tel:')) {
+                console.log('Excluded link type, normal navigation');
+                return;
+              }
+              
+              // Djangoの内部URLのみ処理
+              if (href.startsWith('/') || href.includes(window.location.hostname)) {
+                e.preventDefault();
+                console.log('Starting page transition...');
+                
+                // ローディング開始
+                showPageTransition();
+                
+                // 少し遅延してページ遷移
+                setTimeout(() => {
+                  console.log('Navigating to:', href);
+                  window.location.href = href;
+                }, 400);
+              }
+            });
+            
+            link.setAttribute('data-transition-attached', 'true');
+          }
+        });
+      }
+      
+      // 初回実行
+      attachTransitionToLinks();
+      
+      // ローディング表示（グローバル関数として定義）
+      window.showPageTransition = function() {
+        console.log('Showing transition overlay...');
+        if (transitionOverlay && pageContent) {
+          // body にoverflow hidden を追加
+          document.body.style.overflow = 'hidden';
+          
+          // オーバーレイを表示
+          transitionOverlay.classList.add('active');
+          
+          // ページコンテンツにアニメーション
+          setTimeout(() => {
+            pageContent.classList.add('transitioning');
+          }, 50);
+          
+          console.log('Transition overlay activated');
+        } else {
+          console.error('Missing elements:', { transitionOverlay, pageContent });
+        }
+      }
+      
+      // ローディング非表示（グローバル関数として定義）
+      window.hidePageTransition = function() {
+        console.log('Hiding transition overlay...');
+        if (transitionOverlay && pageContent) {
+          transitionOverlay.classList.remove('active');
+          pageContent.classList.remove('transitioning');
+          document.body.style.overflow = '';
+        }
+      }
+      
+      // ページ読み込み完了時
+      window.addEventListener('load', () => {
+        console.log('Page loaded, hiding transition');
+        hidePageTransition();
+      });
+      
+      // DOMContentLoaded後も再度チェック
+      document.addEventListener('DOMContentLoaded', () => {
+        console.log('DOM loaded, hiding transition');
+        hidePageTransition();
+      });
+      
+      // ブラウザバック時の処理
+      window.addEventListener('pageshow', function(e) {
+        console.log('Page show event, persisted:', e.persisted);
+        hidePageTransition();
+      });
+      
+      // ページ離脱時
+      window.addEventListener('beforeunload', function() {
+        console.log('Before unload');
+        hidePageTransition();
+      });
+      
+      // 動的に追加されたリンクにも対応
+      const observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+          if (mutation.type === 'childList') {
+            attachTransitionToLinks();
+          }
+        });
+      });
+      
+      observer.observe(document.body, {
+        childList: true,
+        subtree: true
+      });
+      
+      // デバッグ用：手動でトランジションをテスト
+      window.testTransition = function() {
+        console.log('Manual transition test');
+        showPageTransition();
+        setTimeout(hidePageTransition, 2000);
+      };
+    }
+    
+    // 新しく追加されたリンクにも遷移効果を適用
+    function refreshPageTransitions() {
+      setupPageTransitions();
+    }
+    
+    // 初期化を即座に実行
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', setupPageTransitions);
+    } else {
+      setupPageTransitions();
+    }
+  </script>
+
+</body>
+</html>

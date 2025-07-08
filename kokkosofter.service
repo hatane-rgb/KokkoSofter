@@ -1,0 +1,27 @@
+[Unit]
+Description=KokkoSofter Django Application
+After=network.target postgresql.service
+Requires=postgresql.service
+
+[Service]
+Type=notify
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/kokkosofter
+Environment=PATH=/var/www/kokkosofter/venv/bin
+EnvironmentFile=/var/www/kokkosofter/.env
+ExecStart=/var/www/kokkosofter/venv/bin/gunicorn \
+    --config /var/www/kokkosofter/gunicorn_config.py \
+    KokkoSofter.wsgi:application
+ExecReload=/bin/kill -s HUP $MAINPID
+Restart=always
+RestartSec=3
+KillMode=mixed
+TimeoutStopSec=5
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=/var/www/kokkosofter /var/log/kokkosofter /var/run/kokkosofter
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target
