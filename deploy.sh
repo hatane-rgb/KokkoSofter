@@ -53,23 +53,28 @@ configure_domain() {
     print_info "🔧 CSRF_TRUSTED_ORIGINSを設定中..."
     # ドメインからHTTPS/HTTPのオリジンを生成
     CSRF_ORIGINS=""
-    IFS=',' read -ra DOMAINS <<< "$DOMAIN_INPUT"
-    for domain in "${DOMAINS[@]}"; do
-        domain=$(echo "$domain" | xargs)  # 空白削除
-        if [[ $domain =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            # IPアドレスの場合はHTTPのみ
-            CSRF_ORIGINS="${CSRF_ORIGINS}http://${domain},"
-        else
-            # ドメインの場合はHTTPS/HTTP両方
-            CSRF_ORIGINS="${CSRF_ORIGINS}https://${domain},http://${domain},"
-        fi
+    OLD_IFS=$IFS
+    IFS=','
+    for domain in $DOMAIN_INPUT; do
+        domain=$(echo "$domain" | sed 's/^[ \t]*//;s/[ \t]*$//')  # 空白削除
+        case "$domain" in
+            *[0-9].[0-9].[0-9].[0-9]*)
+                # IPアドレスの場合はHTTPのみ
+                CSRF_ORIGINS="${CSRF_ORIGINS}http://${domain},"
+                ;;
+            *)
+                # ドメインの場合はHTTPS/HTTP両方
+                CSRF_ORIGINS="${CSRF_ORIGINS}https://${domain},http://${domain},"
+                ;;
+        esac
     done
+    IFS=$OLD_IFS
     # 最後のカンマを削除
     CSRF_ORIGINS=$(echo "$CSRF_ORIGINS" | sed 's/,$//')
     
     # CSRF_TRUSTED_ORIGINS設定を更新または追加
     if grep -q "^CSRF_TRUSTED_ORIGINS=" .env; then
-        sed -i "s/^CSRF_TRUSTED_ORIGINS=.*/CSRF_TRUSTED_ORIGINS=$CSRF_ORIGINS/" .env
+        sed -i.bak "s|^CSRF_TRUSTED_ORIGINS=.*|CSRF_TRUSTED_ORIGINS=$CSRF_ORIGINS|" .env
     else
         echo "CSRF_TRUSTED_ORIGINS=$CSRF_ORIGINS" >> .env
     fi
