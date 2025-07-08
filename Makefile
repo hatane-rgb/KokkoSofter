@@ -215,6 +215,7 @@ print(f'SECRET_KEY updated: {new_key[:10]}...')"
 .PHONY: nginx-setup
 nginx-setup: ## Nginx設定をセットアップ
 	@echo "Nginx設定をセットアップ中..."
+	@sudo rm -f /etc/nginx/sites-enabled/default
 	@sudo cp $(PROJECT_DIR)/nginx_kokkosofter.conf /etc/nginx/sites-available/kokkosofter
 	@sudo ln -sf /etc/nginx/sites-available/kokkosofter /etc/nginx/sites-enabled/
 	@sudo nginx -t
