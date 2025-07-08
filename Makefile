@@ -24,6 +24,7 @@ help: ## ヘルプメッセージを表示
 	@echo "clean            一時ファイルを削除"
 	@echo "requirements     requirements.txtを更新"
 	@echo "backup-db        データベースをバックアップ"
+	@echo "create-dirs      必要なディレクトリを作成"
 	@echo "git-init         Gitリポジトリを初期化"
 
 .PHONY: install
@@ -123,6 +124,15 @@ git-init: ## Gitリポジトリを初期化
 	@echo "1. GitHubでリポジトリを作成"
 	@echo "2. git remote add origin <your-repository-url>"
 	@echo "3. git push -u origin main"
+
+.PHONY: create-dirs
+create-dirs: ## 必要なディレクトリを作成
+	@echo "必要なディレクトリを作成中..."
+	@sudo mkdir -p /var/log/kokkosofter
+	@sudo mkdir -p /var/run/kokkosofter
+	@sudo chown -R www-data:www-data /var/log/kokkosofter /var/run/kokkosofter
+	@sudo chmod 755 /var/log/kokkosofter /var/run/kokkosofter
+	@echo "ディレクトリ作成完了！"
 
 .PHONY: start
 start: ## 簡単な開発開始コマンド

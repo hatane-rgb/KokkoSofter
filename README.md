@@ -83,8 +83,22 @@ nano .env
 | `DEBUG` | デバッグモード | `False` (本番環境) |
 | `ALLOWED_HOSTS` | 許可されたホスト | `your-domain.com,www.your-domain.com` |
 | `DATABASE_URL` | データベースURL | `postgres://user:pass@localhost:5432/db` |
+| `LOG_FILE` | ログファイルパス | `/var/log/kokkosofter/django.log` |
+| `DJANGO_LOG_LEVEL` | ログレベル | `INFO` |
 
-### 3. データベース設定
+### 3. 必要なディレクトリの作成（本番環境）
+
+```bash
+# ログとランタイムディレクトリを作成
+sudo mkdir -p /var/log/kokkosofter /var/run/kokkosofter
+sudo chown -R www-data:www-data /var/log/kokkosofter /var/run/kokkosofter
+sudo chmod 755 /var/log/kokkosofter /var/run/kokkosofter
+
+# または Makefileを使用
+make create-dirs
+```
+
+### 4. データベース設定
 
 ```bash
 # マイグレーションの実行

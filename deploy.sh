@@ -74,8 +74,12 @@ if [ ! -f ".env" ]; then
     fi
 fi
 
-# Django プロジェクトディレクトリに移動（すでにPROJECT_DIRにいるので不要）
-# cd KokkoSofter
+# 必要なディレクトリの作成
+print_info "必要なディレクトリを作成中..."
+sudo mkdir -p /var/log/kokkosofter /var/run/kokkosofter
+sudo chown -R www-data:www-data /var/log/kokkosofter /var/run/kokkosofter
+sudo chmod 755 /var/log/kokkosofter /var/run/kokkosofter
+print_success "ディレクトリの作成が完了しました"
 
 # データベースマイグレーション
 print_info "データベースマイグレーションを実行中..."
