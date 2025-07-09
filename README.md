@@ -229,6 +229,27 @@ make create-dirs        # ディレクトリ再作成
 make service-restart    # サービス再起動
 ```
 
+**Git更新エラー解決:**
+```bash
+# 安全な更新手順
+git stash               # ローカル変更を一時保存
+git pull origin main    # 最新コード取得
+make migrate            # データベース更新
+make static             # 静的ファイル更新
+make service-restart    # サービス再起動
+
+# または強制更新（注意: ローカル変更が削除される）
+git reset --hard HEAD && git clean -fd && git pull origin main
+make migrate && make static && make service-restart
+```
+
+**緊急時の完全復旧:**
+```bash
+# システム全体のリセットと更新
+make fix-permissions && make fix-media && make nginx-setup
+make migrate && make static && make service-restart
+```
+
 ## ⚙️ 設定ファイル
 
 ### 環境変数（.env）
@@ -512,6 +533,62 @@ make check-media
 sudo nginx -t
 ```
 
+#### 11. Git更新時のマージエラー
+
+**原因**: ローカル変更とリモート変更の競合
+
+**エラーメッセージ**:
+```
+error: Your local changes would be overwritten by merge
+Please commit your changes or stash them before you merge.
+```
+
+**解決方法**:
+```bash
+# 現在の変更状況を確認
+git status
+
+# 方法1: 変更を一時保存（推奨）
+git stash
+git pull origin main
+git stash pop  # 必要に応じて
+
+# 方法2: ローカル変更を破棄（注意）
+git reset --hard HEAD
+git clean -fd
+git pull origin main
+
+# 方法3: コミット後にマージ
+git add .
+git commit -m "Local changes"
+git pull origin main
+
+# 更新後の処理
+make migrate
+make static
+make service-restart
+```
+
+#### 12. 本番環境でのデバッグ情報確認
+
+**システム状態の総合確認**:
+```bash
+# サービス状態確認
+make service-status
+make nginx-status
+
+# 設定確認
+make check-csrf
+make check-media
+
+# ログ確認
+make service-logs
+sudo tail -50 /var/log/kokkosofter/django.log
+
+# Django設定チェック
+make test-django
+```
+
 ### ログの確認方法
 
 ```bash
@@ -542,6 +619,109 @@ make static
 
 # サービス再起動
 make service-restart
+```
+
+### ⚠️ Gitマージエラーが発生した場合
+
+**エラーメッセージ例:**
+```
+error: Your local changes to the following files would be overwritten by merge:
+        Makefile
+        README.md
+        accounts/forms.py
+        ...
+Please commit your changes or stash them before you merge.
+```
+
+**解決方法（3つの選択肢）:**
+
+#### 方法1: ローカル変更を一時保存（推奨）
+```bash
+# ローカル変更をstashに保存
+git stash
+
+# 最新コードを取得
+git pull origin main
+
+# 必要に応じてstashの内容を確認・適用
+git stash list
+git stash pop  # 最新のstashを適用（競合が発生する可能性）
+
+# 依存関係とサービス更新
+make migrate
+make static
+make service-restart
+```
+
+#### 方法2: ローカル変更を破棄（注意が必要）
+```bash
+# ⚠️ 警告: ローカルの変更がすべて削除されます
+git reset --hard HEAD
+git clean -fd
+
+# 最新コードを取得
+git pull origin main
+
+# 依存関係とサービス更新
+make migrate
+make static
+make service-restart
+```
+
+#### 方法3: ローカル変更をコミット後にマージ
+```bash
+# ローカル変更をコミット
+git add .
+git commit -m "Local changes before update"
+
+# 最新コードを取得（マージコミットが作成される）
+git pull origin main
+
+# 競合が発生した場合は手動で解決
+# 依存関係とサービス更新
+make migrate
+make static
+make service-restart
+```
+
+### 🔧 安全な更新手順（推奨）
+
+本番環境での安全な更新手順：
+
+```bash
+# 1. 現在の状態をバックアップ
+make backup-db
+sudo cp -r /var/www/kokkosofter /backup/kokkosofter_$(date +%Y%m%d_%H%M%S)
+
+# 2. サービス状態確認
+make service-status
+
+# 3. ローカル変更を確認
+cd /var/www/kokkosofter
+git status
+
+# 4. ローカル変更がある場合はstash
+git stash
+
+# 5. 最新コードを取得
+git pull origin main
+
+# 6. 依存関係とデータベース更新
+make migrate
+make static
+
+# 7. 権限修正
+make fix-permissions
+
+# 8. サービス再起動
+make service-restart
+
+# 9. 動作確認
+make service-status
+make service-logs
+
+# 10. 必要に応じてstashの内容を確認
+git stash list
 ```
 
 ### バックアップ
@@ -652,6 +832,50 @@ make run
 1. **ログ確認**: `make service-logs`
 2. **サービス状態**: `make service-status`
 3. **Issue作成**: [GitHub Issues](https://github.com/hatane-rgb/KokkoSofter/issues)
+
+## 🚨 緊急時クイックリファレンス
+
+### 本番環境で問題が発生した場合の対処順序
+
+#### 1. 基本確認
+```bash
+make service-status     # サービス状態確認
+make service-logs       # エラーログ確認
+make nginx-status       # Nginx状態確認
+```
+
+#### 2. Git更新エラーの場合
+```bash
+cd /var/www/kokkosofter
+git status              # 変更状況確認
+git stash               # ローカル変更を保存
+git pull origin main    # 最新コード取得
+make migrate && make static && make service-restart
+```
+
+#### 3. 権限エラーの場合
+```bash
+make fix-permissions    # ファイル権限修正
+make fix-media          # メディアファイル権限修正
+make service-restart    # サービス再起動
+```
+
+#### 4. サービス起動エラーの場合
+```bash
+make debug-gunicorn     # デバッグモードで起動テスト
+make test-django        # Django設定チェック
+make fix-permissions && make service-restart
+```
+
+#### 5. 緊急時の完全リセット
+```bash
+# ⚠️ 最終手段（ローカル変更が失われます）
+git reset --hard HEAD && git clean -fd
+git pull origin main
+make fix-permissions && make fix-media
+make migrate && make static
+make nginx-setup && make service-restart
+```
 
 ## 📝 ライセンス
 
