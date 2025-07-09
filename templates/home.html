@@ -98,6 +98,16 @@
                   <li><a class="text-sm">🔗 リンクをコピー</a></li>
                   <li><a class="text-sm">📤 シェア</a></li>
                   <li><a class="text-sm">🔖 保存</a></li>
+                  {% if post.author == user or user.is_staff or user.is_superuser %}
+                    <li class="divider"></li>
+                    <li>
+                      <a class="text-sm text-error delete-post-btn" 
+                         data-post-id="{{ post.id }}"
+                         data-post-content="{{ post.content|truncatechars:50 }}">
+                        🗑️ 削除
+                      </a>
+                    </li>
+                  {% endif %}
                 </ul>
               </div>
             </div>
@@ -245,5 +255,131 @@
         </div>
       </div>
     </div>
+  {% endif %}
+
+  <!-- 投稿削除確認モーダル -->
+  <div class="modal" id="deletePostModal">
+    <div class="modal-box">
+      <h3 class="font-bold text-lg text-error">投稿削除確認</h3>
+      <div class="py-4">
+        <div class="alert alert-warning">
+          <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.728-.833-2.498 0L3.316 16.5c-.77.833.192 2.5 1.732 2.5z" />
+          </svg>
+          <span>この操作は取り消すことができません。</span>
+        </div>
+        <p class="py-4">以下の投稿を削除しますか？</p>
+        <div class="bg-base-200 p-4 rounded-lg" id="delete-post-preview">
+          <!-- 削除対象の投稿内容がここに表示される -->
+        </div>
+      </div>
+      <div class="modal-action">
+        <button class="btn btn-secondary" onclick="closeDeleteModal()">キャンセル</button>
+        <button class="btn btn-error" id="confirm-delete-btn">
+          🗑️ 削除する
+        </button>
+      </div>
+    </div>
+  </div>
+
+  {% if user.is_authenticated %}
+  <script>
+  // CSRF トークンの設定
+  function getCsrfToken() {
+    return document.querySelector('[name=csrfmiddlewaretoken]')?.value || 
+           document.querySelector('meta[name=csrf-token]')?.getAttribute('content');
+  }
+
+  // 投稿削除機能
+  let currentDeletePostId = null;
+
+  // 削除ボタンのクリックイベント
+  document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.delete-post-btn').forEach(btn => {
+      btn.addEventListener('click', function(e) {
+        e.preventDefault();
+        const postId = this.getAttribute('data-post-id');
+        const postContent = this.getAttribute('data-post-content');
+        
+        // 削除確認モーダルに投稿内容を表示
+        document.getElementById('delete-post-preview').textContent = postContent;
+        currentDeletePostId = postId;
+        document.getElementById('deletePostModal').classList.add('modal-open');
+      });
+    });
+
+    // 削除確認ボタンのクリックイベント
+    document.getElementById('confirm-delete-btn').addEventListener('click', function() {
+      if (!currentDeletePostId) return;
+      
+      const csrfToken = getCsrfToken();
+      if (!csrfToken) {
+        alert('セキュリティトークンが見つかりません。ページを再読み込みしてください。');
+        return;
+      }
+
+      // 削除ボタンを無効化
+      this.disabled = true;
+      this.innerHTML = '<span class="loading loading-spinner loading-sm"></span>削除中...';
+
+      fetch(`/posts/delete/${currentDeletePostId}/`, {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': csrfToken,
+          'Content-Type': 'application/json',
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          closeDeleteModal();
+          // 投稿カードを削除
+          const postCard = document.querySelector(`[data-post-id="${currentDeletePostId}"]`).closest('.post-card');
+          if (postCard) {
+            postCard.style.transition = 'opacity 0.5s ease-out, transform 0.5s ease-out';
+            postCard.style.opacity = '0';
+            postCard.style.transform = 'scale(0.95)';
+            setTimeout(() => {
+              postCard.remove();
+            }, 500);
+          }
+          
+          // 成功メッセージを表示
+          showToast('投稿を削除しました。', 'success');
+        } else {
+          alert('削除に失敗しました: ' + data.error);
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        alert('削除に失敗しました。');
+      })
+      .finally(() => {
+        // 削除ボタンを有効化
+        this.disabled = false;
+        this.innerHTML = '🗑️ 削除する';
+      });
+    });
+  });
+
+  function closeDeleteModal() {
+    document.getElementById('deletePostModal').classList.remove('modal-open');
+    currentDeletePostId = null;
+  }
+
+  function showToast(message, type = 'info') {
+    const toast = document.createElement('div');
+    toast.className = `toast toast-top toast-end`;
+    toast.innerHTML = `
+      <div class="alert alert-${type === 'success' ? 'success' : 'info'}">
+        <span>${message}</span>
+      </div>
+    `;
+    document.body.appendChild(toast);
+    setTimeout(() => {
+      toast.remove();
+    }, 3000);
+  }
+  </script>
   {% endif %}
 {% endblock %}

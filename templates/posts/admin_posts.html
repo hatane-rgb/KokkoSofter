@@ -1,0 +1,335 @@
+{% extends 'base.html' %}
+
+{% block title %}投稿管理 - KokkoSofter{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fas fa-file-alt mr-2"></i>投稿管理</h2>
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb mb-0">
+                        <li class="breadcrumb-item"><a href="{% url 'admin_dashboard' %}">管理ダッシュボード</a></li>
+                        <li class="breadcrumb-item active">投稿管理</li>
+                    </ol>
+                </nav>
+            </div>
+
+            <!-- 投稿統計 -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card bg-primary text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h6 class="card-title mb-0">総投稿数</h6>
+                                    <h4 class="mt-2">{{ posts.count }}</h4>
+                                </div>
+                                <i class="fas fa-file-alt fa-2x opacity-75"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 投稿一覧 -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-list mr-2"></i>投稿一覧</h5>
+                </div>
+                <div class="card-body">
+                    {% if posts %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="thead-light">
+                                    <tr>
+                                        <th>投稿者</th>
+                                        <th>内容</th>
+                                        <th>画像</th>
+                                        <th>いいね数</th>
+                                        <th>投稿日時</th>
+                                        <th>操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for post in posts %}
+                                    <tr id="post-{{ post.id }}">
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                {% if post.author.profile.avatar %}
+                                                    <img src="{{ post.author.profile.avatar.url }}" 
+                                                         alt="{{ post.author.username }}" 
+                                                         class="rounded-circle mr-2" 
+                                                         width="40" height="40">
+                                                {% else %}
+                                                    <div class="bg-secondary rounded-circle mr-2 d-flex align-items-center justify-content-center" 
+                                                         style="width: 40px; height: 40px;">
+                                                        <i class="fas fa-user text-white"></i>
+                                                    </div>
+                                                {% endif %}
+                                                <div>
+                                                    <strong>{{ post.author.username }}</strong>
+                                                    <br>
+                                                    <small class="text-muted">{{ post.author.get_full_name|default:post.author.username }}</small>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div style="max-width: 300px;">
+                                                {{ post.content|truncatechars:100 }}
+                                            </div>
+                                        </td>
+                                        <td>
+                                            {% if post.image %}
+                                                <img src="{{ post.image.url }}" 
+                                                     alt="投稿画像" 
+                                                     class="img-thumbnail" 
+                                                     style="max-width: 60px; max-height: 60px;"
+                                                     data-toggle="modal" 
+                                                     data-target="#imageModal{{ post.id }}"
+                                                     style="cursor: pointer;">
+                                            {% else %}
+                                                <span class="text-muted">なし</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <span class="badge badge-info">{{ post.likes.count }}</span>
+                                        </td>
+                                        <td>
+                                            <small>{{ post.created_at|date:"Y/m/d H:i" }}</small>
+                                        </td>
+                                        <td>
+                                            <div class="btn-group" role="group">
+                                                <button type="button" 
+                                                        class="btn btn-sm btn-outline-info"
+                                                        data-toggle="modal" 
+                                                        data-target="#viewModal{{ post.id }}"
+                                                        title="詳細表示">
+                                                    <i class="fas fa-eye"></i>
+                                                </button>
+                                                <button type="button" 
+                                                        class="btn btn-sm btn-outline-danger delete-post-btn"
+                                                        data-post-id="{{ post.id }}"
+                                                        data-post-content="{{ post.content|truncatechars:50 }}"
+                                                        title="削除">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-file-alt fa-3x text-muted mb-3"></i>
+                            <p class="text-muted">投稿がありません。</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 投稿詳細モーダル -->
+{% for post in posts %}
+<div class="modal fade" id="viewModal{{ post.id }}" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">投稿詳細</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="d-flex align-items-center mb-3">
+                    {% if post.author.profile.avatar %}
+                        <img src="{{ post.author.profile.avatar.url }}" 
+                             alt="{{ post.author.username }}" 
+                             class="rounded-circle mr-3" 
+                             width="50" height="50">
+                    {% else %}
+                        <div class="bg-secondary rounded-circle mr-3 d-flex align-items-center justify-content-center" 
+                             style="width: 50px; height: 50px;">
+                            <i class="fas fa-user text-white"></i>
+                        </div>
+                    {% endif %}
+                    <div>
+                        <strong>{{ post.author.username }}</strong>
+                        <br>
+                        <small class="text-muted">{{ post.created_at|date:"Y年m月d日 H:i" }}</small>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <p>{{ post.content|linebreaks }}</p>
+                </div>
+                {% if post.image %}
+                    <div class="mb-3">
+                        <img src="{{ post.image.url }}" 
+                             alt="投稿画像" 
+                             class="img-fluid rounded">
+                    </div>
+                {% endif %}
+                <div class="d-flex justify-content-between text-muted">
+                    <span><i class="fas fa-heart"></i> {{ post.likes.count }} いいね</span>
+                    <span>投稿ID: {{ post.id }}</span>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">閉じる</button>
+                <button type="button" 
+                        class="btn btn-danger delete-post-btn"
+                        data-post-id="{{ post.id }}"
+                        data-post-content="{{ post.content|truncatechars:50 }}"
+                        data-dismiss="modal">
+                    <i class="fas fa-trash mr-1"></i>削除
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 画像拡大モーダル -->
+{% if post.image %}
+<div class="modal fade" id="imageModal{{ post.id }}" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">投稿画像</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body text-center">
+                <img src="{{ post.image.url }}" 
+                     alt="投稿画像" 
+                     class="img-fluid rounded">
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endfor %}
+
+<!-- 投稿削除確認モーダル -->
+<div class="modal fade" id="deletePostModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">投稿削除確認</h5>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle mr-2"></i>
+                    この操作は取り消すことができません。
+                </div>
+                <p>以下の投稿を削除しますか？</p>
+                <div class="border p-3 bg-light rounded" id="delete-post-preview">
+                    <!-- 削除対象の投稿内容がここに表示される -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">キャンセル</button>
+                <button type="button" class="btn btn-danger" id="confirm-delete-btn">
+                    <i class="fas fa-trash mr-1"></i>削除する
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+$(document).ready(function() {
+    // CSRF トークンの設定
+    function getCsrfToken() {
+        return $('[name=csrfmiddlewaretoken]').val() || $('meta[name=csrf-token]').attr('content');
+    }
+
+    // 投稿削除ボタンのクリックイベント
+    $('.delete-post-btn').click(function() {
+        const postId = $(this).data('post-id');
+        const postContent = $(this).data('post-content');
+        
+        // 削除確認モーダルに投稿内容を表示
+        $('#delete-post-preview').text(postContent);
+        $('#confirm-delete-btn').data('post-id', postId);
+        $('#deletePostModal').modal('show');
+    });
+
+    // 削除確認ボタンのクリックイベント
+    $('#confirm-delete-btn').click(function() {
+        const postId = $(this).data('post-id');
+        const csrfToken = getCsrfToken();
+        
+        if (!csrfToken) {
+            alert('セキュリティトークンが見つかりません。ページを再読み込みしてください。');
+            return;
+        }
+
+        // 削除ボタンを無効化
+        $(this).prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-1"></i>削除中...');
+
+        $.ajaxSetup({
+            beforeSend: function(xhr, settings) {
+                if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type) && !this.crossDomain) {
+                    xhr.setRequestHeader("X-CSRFToken", csrfToken);
+                }
+            }
+        });
+
+        $.ajax({
+            url: `/posts/delete/${postId}/`,
+            type: 'POST',
+            success: function(response) {
+                if (response.success) {
+                    $('#deletePostModal').modal('hide');
+                    $(`#post-${postId}`).fadeOut(500, function() {
+                        $(this).remove();
+                        // 投稿数を更新
+                        const currentCount = parseInt($('.card.bg-primary h4').text());
+                        $('.card.bg-primary h4').text(currentCount - 1);
+                    });
+                    
+                    // 成功メッセージを表示
+                    $('<div class="alert alert-success alert-dismissible fade show" role="alert">' +
+                      '<i class="fas fa-check-circle mr-2"></i>' + response.message +
+                      '<button type="button" class="close" data-dismiss="alert">' +
+                      '<span aria-hidden="true">&times;</span></button></div>')
+                      .prependTo('.container-fluid');
+                } else {
+                    alert('削除に失敗しました: ' + response.error);
+                }
+            },
+            error: function(xhr) {
+                let errorMessage = '削除に失敗しました。';
+                if (xhr.responseJSON && xhr.responseJSON.error) {
+                    errorMessage = xhr.responseJSON.error;
+                }
+                alert(errorMessage);
+            },
+            complete: function() {
+                // 削除ボタンを有効化
+                $('#confirm-delete-btn').prop('disabled', false).html('<i class="fas fa-trash mr-1"></i>削除する');
+            }
+        });
+    });
+
+    // モーダルが閉じられたときの処理
+    $('#deletePostModal').on('hidden.bs.modal', function() {
+        $('#confirm-delete-btn').prop('disabled', false).html('<i class="fas fa-trash mr-1"></i>削除する');
+    });
+
+    // アラートの自動非表示
+    setTimeout(function() {
+        $('.alert:not(.alert-warning)').fadeOut();
+    }, 5000);
+});
+</script>
+{% endblock %}

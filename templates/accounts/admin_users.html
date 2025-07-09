@@ -112,19 +112,58 @@
                             </td>
                             <td>
                                 <div class="flex space-x-2">
+                                    <!-- 編集ボタン -->
+                                    <a href="{% url 'accounts:admin_edit_user' user.id %}" 
+                                       class="btn btn-ghost btn-xs" 
+                                       title="ユーザー編集">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    
+                                    <!-- 権限切り替えボタン -->
+                                    {% if not user.is_superuser or user.is_superuser and request.user.is_superuser %}
+                                        <a href="{% url 'accounts:admin_toggle_user_status' user.id %}" 
+                                           class="btn btn-ghost btn-xs" 
+                                           title="{% if user.is_active %}非アクティブ化{% else %}アクティブ化{% endif %}"
+                                           onclick="return confirm('ユーザーの状態を変更しますか？')">
+                                            {% if user.is_active %}
+                                                <i class="fas fa-user-slash text-warning"></i>
+                                            {% else %}
+                                                <i class="fas fa-user-check text-success"></i>
+                                            {% endif %}
+                                        </a>
+                                    {% endif %}
+                                    
+                                    <!-- スタッフ権限切り替え（スーパーユーザーのみ） -->
+                                    {% if request.user.is_superuser and not user.is_superuser %}
+                                        <a href="{% url 'accounts:admin_toggle_staff_status' user.id %}" 
+                                           class="btn btn-ghost btn-xs" 
+                                           title="{% if user.is_staff %}スタッフ権限削除{% else %}スタッフ権限付与{% endif %}"
+                                           onclick="return confirm('スタッフ権限を変更しますか？')">
+                                            {% if user.is_staff %}
+                                                <i class="fas fa-user-minus text-warning"></i>
+                                            {% else %}
+                                                <i class="fas fa-user-plus text-info"></i>
+                                            {% endif %}
+                                        </a>
+                                    {% endif %}
+                                    
+                                    <!-- 削除ボタン（自分以外かつスーパーユーザー以外） -->
+                                    {% if user != request.user and not user.is_superuser %}
+                                        <button class="btn btn-ghost btn-xs delete-user-btn" 
+                                                data-user-id="{{ user.id }}"
+                                                data-username="{{ user.username }}"
+                                                title="ユーザー削除">
+                                            <i class="fas fa-trash text-error"></i>
+                                        </button>
+                                    {% endif %}
+                                    
+                                    <!-- Django管理画面へのリンク -->
                                     <a href="{% url 'admin:auth_user_change' user.id %}" 
                                        class="btn btn-ghost btn-xs" 
                                        target="_blank"
-                                       title="ユーザー編集">
-                                        ✏️
+                                       title="Django管理画面で編集">
+                                        <i class="fas fa-external-link-alt"></i>
                                     </a>
-                                    {% if not user.is_superuser or user == request.user %}
-                                    <button class="btn btn-ghost btn-xs" 
-                                            title="メッセージ送信" 
-                                            disabled>
-                                        💬
-                                    </button>
-                                    {% endif %}
                                 </div>
                             </td>
                         </tr>
@@ -143,7 +182,7 @@
 
     <!-- クイックアクション -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
-        <a href="{% url 'admin:auth_user_add' %}" class="card bg-base-100 shadow-lg hover:shadow-xl transition-shadow" target="_blank">
+        <a href="{% url 'accounts:admin_create_user' %}" class="card bg-base-100 shadow-lg hover:shadow-xl transition-shadow">
             <div class="card-body">
                 <h3 class="card-title text-success">➕ 新規ユーザー作成</h3>
                 <p>新しいユーザーアカウントを作成</p>
@@ -174,4 +213,133 @@
         </div>
     </div>
 </div>
+
+<!-- ユーザー削除確認モーダル -->
+<div class="modal" id="deleteUserModal">
+    <div class="modal-box">
+        <h3 class="font-bold text-lg text-error">ユーザー削除確認</h3>
+        <div class="py-4">
+            <div class="alert alert-warning">
+                <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.728-.833-2.498 0L3.316 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+                <span>この操作は取り消すことができません。</span>
+            </div>
+            <p class="py-4">以下のユーザーを削除しますか？</p>
+            <div class="bg-base-200 p-4 rounded-lg" id="delete-user-preview">
+                <!-- 削除対象のユーザー情報がここに表示される -->
+            </div>
+        </div>
+        <div class="modal-action">
+            <button class="btn btn-secondary" onclick="closeDeleteUserModal()">キャンセル</button>
+            <button class="btn btn-error" id="confirm-delete-user-btn">
+                <i class="fas fa-trash mr-1"></i>削除する
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+// CSRF トークンの設定
+function getCsrfToken() {
+    return document.querySelector('[name=csrfmiddlewaretoken]')?.value || 
+           document.querySelector('meta[name=csrf-token]')?.getAttribute('content');
+}
+
+// ユーザー削除機能
+let currentDeleteUserId = null;
+
+// 削除ボタンのクリックイベント
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.delete-user-btn').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const userId = this.getAttribute('data-user-id');
+            const username = this.getAttribute('data-username');
+            
+            // 削除確認モーダルにユーザー情報を表示
+            document.getElementById('delete-user-preview').innerHTML = `
+                <strong>ユーザー名:</strong> ${username}<br>
+                <strong>ユーザーID:</strong> ${userId}
+            `;
+            currentDeleteUserId = userId;
+            document.getElementById('deleteUserModal').classList.add('modal-open');
+        });
+    });
+
+    // 削除確認ボタンのクリックイベント
+    document.getElementById('confirm-delete-user-btn').addEventListener('click', function() {
+        if (!currentDeleteUserId) return;
+        
+        const csrfToken = getCsrfToken();
+        if (!csrfToken) {
+            alert('セキュリティトークンが見つかりません。ページを再読み込みしてください。');
+            return;
+        }
+
+        // 削除ボタンを無効化
+        this.disabled = true;
+        this.innerHTML = '<span class="loading loading-spinner loading-sm"></span>削除中...';
+
+        fetch(`/accounts/admin-delete-user/${currentDeleteUserId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken,
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                closeDeleteUserModal();
+                // ユーザー行を削除
+                const userRow = document.querySelector(`[data-user-id="${currentDeleteUserId}"]`).closest('tr');
+                if (userRow) {
+                    userRow.style.transition = 'opacity 0.5s ease-out';
+                    userRow.style.opacity = '0';
+                    setTimeout(() => {
+                        userRow.remove();
+                    }, 500);
+                }
+                
+                // 成功メッセージを表示
+                showToast(data.message, 'success');
+                
+                // 統計を更新
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                alert('削除に失敗しました: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('削除に失敗しました。');
+        })
+        .finally(() => {
+            // 削除ボタンを有効化
+            this.disabled = false;
+            this.innerHTML = '<i class="fas fa-trash mr-1"></i>削除する';
+        });
+    });
+});
+
+function closeDeleteUserModal() {
+    document.getElementById('deleteUserModal').classList.remove('modal-open');
+    currentDeleteUserId = null;
+}
+
+function showToast(message, type = 'info') {
+    const toast = document.createElement('div');
+    toast.className = `toast toast-top toast-end`;
+    toast.innerHTML = `
+        <div class="alert alert-${type === 'success' ? 'success' : 'info'}">
+            <span>${message}</span>
+        </div>
+    `;
+    document.body.appendChild(toast);
+    setTimeout(() => {
+        toast.remove();
+    }, 3000);
+}
+</script>
 {% endblock %}

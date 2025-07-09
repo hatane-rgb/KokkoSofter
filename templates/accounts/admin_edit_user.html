@@ -1,0 +1,240 @@
+{% extends 'base.html' %}
+
+{% block title %}ユーザー編集 - KokkoSofter{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fas fa-user-edit mr-2"></i>ユーザー編集</h2>
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb mb-0">
+                        <li class="breadcrumb-item"><a href="{% url 'admin_dashboard' %}">管理ダッシュボード</a></li>
+                        <li class="breadcrumb-item"><a href="{% url 'admin_users' %}">ユーザー管理</a></li>
+                        <li class="breadcrumb-item active">ユーザー編集</li>
+                    </ol>
+                </nav>
+            </div>
+
+            <div class="row justify-content-center">
+                <div class="col-md-8">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-user mr-2"></i>
+                                ユーザー情報編集: {{ edit_user.username }}
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            {% if messages %}
+                                {% for message in messages %}
+                                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                        {{ message }}
+                                        <button type="button" class="close" data-dismiss="alert">
+                                            <span>&times;</span>
+                                        </button>
+                                    </div>
+                                {% endfor %}
+                            {% endif %}
+
+                            <form method="post">
+                                {% csrf_token %}
+                                
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label for="{{ form.username.id_for_label }}">{{ form.username.label }}</label>
+                                            {{ form.username }}
+                                            {% if form.username.errors %}
+                                                <div class="invalid-feedback d-block">
+                                                    {% for error in form.username.errors %}
+                                                        {{ error }}
+                                                    {% endfor %}
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label for="{{ form.email.id_for_label }}">{{ form.email.label }}</label>
+                                            {{ form.email }}
+                                            {% if form.email.errors %}
+                                                <div class="invalid-feedback d-block">
+                                                    {% for error in form.email.errors %}
+                                                        {{ error }}
+                                                    {% endfor %}
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label for="{{ form.first_name.id_for_label }}">{{ form.first_name.label }}</label>
+                                            {{ form.first_name }}
+                                            {% if form.first_name.errors %}
+                                                <div class="invalid-feedback d-block">
+                                                    {% for error in form.first_name.errors %}
+                                                        {{ error }}
+                                                    {% endfor %}
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label for="{{ form.last_name.id_for_label }}">{{ form.last_name.label }}</label>
+                                            {{ form.last_name }}
+                                            {% if form.last_name.errors %}
+                                                <div class="invalid-feedback d-block">
+                                                    {% for error in form.last_name.errors %}
+                                                        {{ error }}
+                                                    {% endfor %}
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group form-check">
+                                            <div class="form-check">
+                                                {{ form.is_active }}
+                                                <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
+                                                    {{ form.is_active.label }}
+                                                </label>
+                                            </div>
+                                            {% if form.is_active.errors %}
+                                                <div class="invalid-feedback d-block">
+                                                    {% for error in form.is_active.errors %}
+                                                        {{ error }}
+                                                    {% endfor %}
+                                                </div>
+                                            {% endif %}
+                                            <small class="form-text text-muted">
+                                                非アクティブユーザーはログインできません。
+                                            </small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        {% if user.is_superuser or not edit_user.is_superuser %}
+                                            <div class="form-group form-check">
+                                                <div class="form-check">
+                                                    {{ form.is_staff }}
+                                                    <label class="form-check-label" for="{{ form.is_staff.id_for_label }}">
+                                                        {{ form.is_staff.label }}
+                                                    </label>
+                                                </div>
+                                                {% if form.is_staff.errors %}
+                                                    <div class="invalid-feedback d-block">
+                                                        {% for error in form.is_staff.errors %}
+                                                            {{ error }}
+                                                        {% endfor %}
+                                                    </div>
+                                                {% endif %}
+                                                <small class="form-text text-muted">
+                                                    管理画面へのアクセス権限を付与します。
+                                                </small>
+                                            </div>
+                                        {% else %}
+                                            <div class="alert alert-info">
+                                                <i class="fas fa-info-circle mr-2"></i>
+                                                スーパーユーザーの権限は変更できません。
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+
+                                <hr>
+
+                                <div class="d-flex justify-content-between">
+                                    <a href="{% url 'admin_users' %}" class="btn btn-secondary">
+                                        <i class="fas fa-arrow-left mr-1"></i>戻る
+                                    </a>
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-save mr-1"></i>保存
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- ユーザー情報表示 -->
+                    <div class="card mt-4">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="fas fa-info-circle mr-2"></i>ユーザー詳細情報</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <table class="table table-borderless table-sm">
+                                        <tr>
+                                            <th>ユーザーID:</th>
+                                            <td>{{ edit_user.id }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>登録日:</th>
+                                            <td>{{ edit_user.date_joined|date:"Y年m月d日 H:i" }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>最終ログイン:</th>
+                                            <td>
+                                                {% if edit_user.last_login %}
+                                                    {{ edit_user.last_login|date:"Y年m月d日 H:i" }}
+                                                {% else %}
+                                                    なし
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </div>
+                                <div class="col-md-6">
+                                    <table class="table table-borderless table-sm">
+                                        <tr>
+                                            <th>スーパーユーザー:</th>
+                                            <td>
+                                                {% if edit_user.is_superuser %}
+                                                    <span class="badge badge-danger">はい</span>
+                                                {% else %}
+                                                    <span class="badge badge-secondary">いいえ</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <th>投稿数:</th>
+                                            <td>
+                                                {% if edit_user.post_set.count %}
+                                                    {{ edit_user.post_set.count }}件
+                                                {% else %}
+                                                    0件
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <th>アバター:</th>
+                                            <td>
+                                                {% if edit_user.profile.avatar %}
+                                                    <img src="{{ edit_user.profile.avatar.url }}" 
+                                                         alt="アバター" 
+                                                         class="rounded-circle" 
+                                                         width="30" height="30">
+                                                {% else %}
+                                                    なし
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

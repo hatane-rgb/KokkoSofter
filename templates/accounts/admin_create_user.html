@@ -1,0 +1,198 @@
+{% extends 'base.html' %}
+
+{% block title %}新規ユーザー作成 - KokkoSofter{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="mb-8">
+        <div class="flex items-center space-x-4 mb-4">
+            <a href="{% url 'accounts:admin_users' %}" class="btn btn-ghost btn-sm">
+                ← ユーザー管理に戻る
+            </a>
+        </div>
+        <h1 class="text-3xl font-bold text-base-content mb-2">➕ 新規ユーザー作成</h1>
+        <p class="text-base-content/70">新しいユーザーアカウントを作成します</p>
+    </div>
+
+    <div class="max-w-md mx-auto">
+        <div class="card bg-base-100 shadow-lg">
+            <div class="card-body">
+                <h3 class="card-title mb-4">ユーザー情報</h3>
+                
+                <form method="post" class="space-y-4">
+                    {% csrf_token %}
+                    
+                    <!-- ユーザー名 -->
+                    <div class="form-control">
+                        <label class="label" for="{{ form.username.id_for_label }}">
+                            <span class="label-text">{{ form.username.label }}</span>
+                        </label>
+                        {{ form.username }}
+                        {% if form.username.errors %}
+                            <label class="label">
+                                <span class="label-text-alt text-error">
+                                    {% for error in form.username.errors %}{{ error }}{% endfor %}
+                                </span>
+                            </label>
+                        {% endif %}
+                        <label class="label">
+                            <span class="label-text-alt">英数字とアンダースコアのみ使用可能</span>
+                        </label>
+                    </div>
+
+                    <!-- 名前と苗字 -->
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="form-control">
+                            <label class="label" for="{{ form.first_name.id_for_label }}">
+                                <span class="label-text">{{ form.first_name.label }}</span>
+                            </label>
+                            {{ form.first_name }}
+                            {% if form.first_name.errors %}
+                                <label class="label">
+                                    <span class="label-text-alt text-error">
+                                        {% for error in form.first_name.errors %}{{ error }}{% endfor %}
+                                    </span>
+                                </label>
+                            {% endif %}
+                        </div>
+                        <div class="form-control">
+                            <label class="label" for="{{ form.last_name.id_for_label }}">
+                                <span class="label-text">{{ form.last_name.label }}</span>
+                            </label>
+                            {{ form.last_name }}
+                            {% if form.last_name.errors %}
+                                <label class="label">
+                                    <span class="label-text-alt text-error">
+                                        {% for error in form.last_name.errors %}{{ error }}{% endfor %}
+                                    </span>
+                                </label>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- メールアドレス -->
+                    <div class="form-control">
+                        <label class="label" for="{{ form.email.id_for_label }}">
+                            <span class="label-text">{{ form.email.label }}</span>
+                        </label>
+                        {{ form.email }}
+                        {% if form.email.errors %}
+                            <label class="label">
+                                <span class="label-text-alt text-error">
+                                    {% for error in form.email.errors %}{{ error }}{% endfor %}
+                                </span>
+                            </label>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- パスワード -->
+                    <div class="form-control">
+                        <label class="label" for="{{ form.password1.id_for_label }}">
+                            <span class="label-text">{{ form.password1.label }}</span>
+                        </label>
+                        {{ form.password1 }}
+                        {% if form.password1.errors %}
+                            <label class="label">
+                                <span class="label-text-alt text-error">
+                                    {% for error in form.password1.errors %}{{ error }}{% endfor %}
+                                </span>
+                            </label>
+                        {% endif %}
+                        <label class="label">
+                            <span class="label-text-alt">8文字以上で安全なパスワードを設定</span>
+                        </label>
+                    </div>
+                    
+                    <!-- パスワード確認 -->
+                    <div class="form-control">
+                        <label class="label" for="{{ form.password2.id_for_label }}">
+                            <span class="label-text">{{ form.password2.label }}</span>
+                        </label>
+                        {{ form.password2 }}
+                        {% if form.password2.errors %}
+                            <label class="label">
+                                <span class="label-text-alt text-error">
+                                    {% for error in form.password2.errors %}{{ error }}{% endfor %}
+                                </span>
+                            </label>
+                        {% endif %}
+                    </div>
+
+                    <!-- 権限設定 -->
+                    <div class="divider">権限設定</div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="form-control">
+                            <label class="label cursor-pointer">
+                                {{ form.is_active }}
+                                <span class="label-text">{{ form.is_active.label }}</span>
+                            </label>
+                            {% if form.is_active.errors %}
+                                <label class="label">
+                                    <span class="label-text-alt text-error">
+                                        {% for error in form.is_active.errors %}{{ error }}{% endfor %}
+                                    </span>
+                                </label>
+                            {% endif %}
+                            <label class="label">
+                                <span class="label-text-alt">無効にするとログインできません</span>
+                            </label>
+                        </div>
+                        <div class="form-control">
+                            <label class="label cursor-pointer">
+                                {{ form.is_staff }}
+                                <span class="label-text">{{ form.is_staff.label }}</span>
+                            </label>
+                            {% if form.is_staff.errors %}
+                                <label class="label">
+                                    <span class="label-text-alt text-error">
+                                        {% for error in form.is_staff.errors %}{{ error }}{% endfor %}
+                                    </span>
+                                </label>
+                            {% endif %}
+                            <label class="label">
+                                <span class="label-text-alt">管理画面へのアクセス権限</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <!-- エラーメッセージ -->
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-error">
+                            {% for error in form.non_field_errors %}
+                                <span>{{ error }}</span>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                    
+                    <!-- ボタン -->
+                    <div class="form-control mt-6">
+                        <button type="submit" class="btn btn-primary">
+                            ✨ ユーザーを作成
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- 作成後の設定について -->
+        <div class="card bg-base-100 shadow-lg mt-6">
+            <div class="card-body">
+                <h3 class="card-title text-info">📋 作成後について</h3>
+                <ul class="list-disc list-inside space-y-2 text-sm">
+                    <li>ユーザーは作成後すぐにログイン可能になります</li>
+                    <li>プロフィール情報は自動的に作成されます</li>
+                    <li>スタッフ権限は後からユーザー管理画面で設定できます</li>
+                    <li>メールアドレスや追加情報はDjango管理画面で設定可能です</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* フォームの入力フィールドのスタイル */
+input[type="text"], input[type="password"], input[type="email"] {
+    width: 100%;
+}
+</style>
+{% endblock %}
