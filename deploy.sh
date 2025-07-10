@@ -5,6 +5,22 @@
 
 set -e  # エラー時に停止
 
+# OS検出
+detect_os() {
+    if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "cygwin" || "$OSTYPE" == "win32" ]]; then
+        echo "windows"
+    elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
+        echo "linux"
+    elif [[ "$OSTYPE" == "darwin"* ]]; then
+        echo "macos"
+    else
+        echo "unknown"
+    fi
+}
+
+OS_TYPE=$(detect_os)
+print_info "検出されたOS: $OS_TYPE"
+
 # 色付きメッセージ用の関数
 print_info() {
     echo -e "\033[34m[INFO]\033[0m $1"
@@ -142,18 +158,32 @@ else
 fi
 
 # Python バージョンの確認
+PYTHON_CMD="python3"
 if ! command -v python3 &> /dev/null; then
-    print_error "Python3 がインストールされていません"
-    exit 1
+    if command -v python &> /dev/null; then
+        PYTHON_VERSION=$(python --version 2>&1 | grep -E "Python 3\.[8-9]|Python 3\.1[0-9]")
+        if [ -n "$PYTHON_VERSION" ]; then
+            PYTHON_CMD="python"
+            print_info "Python3が見つかりません。pythonコマンドを使用します"
+        else
+            print_error "Python 3.8+ がインストールされていません"
+            print_error "インストール方法: https://www.python.org/downloads/"
+            exit 1
+        fi
+    else
+        print_error "Pythonがインストールされていません"
+        print_error "インストール方法: https://www.python.org/downloads/"
+        exit 1
+    fi
 fi
 
-PYTHON_VERSION=$(python3 --version | cut -d " " -f 2)
+PYTHON_VERSION=$($PYTHON_CMD --version | cut -d " " -f 2)
 print_info "Python バージョン: $PYTHON_VERSION"
 
 # 仮想環境の作成
 if [ ! -d "$VENV_DIR" ]; then
     print_info "仮想環境を作成中..."
-    python3 -m venv $VENV_DIR
+    $PYTHON_CMD -m venv $VENV_DIR
     print_success "仮想環境を作成しました"
 else
     print_info "既存の仮想環境を使用します"
@@ -162,9 +192,13 @@ fi
 # プロジェクトディレクトリに移動
 cd $PROJECT_DIR
 
-# 仮想環境の有効化
+# 仮想環境の有効化（OS別）
 print_info "仮想環境を有効化中..."
-source $VENV_DIR/bin/activate
+if [ "$OS_TYPE" = "windows" ]; then
+    source $VENV_DIR/Scripts/activate
+else
+    source $VENV_DIR/bin/activate
+fi
 
 # 依存関係のインストール
 print_info "Python依存関係をインストール中..."
@@ -248,8 +282,8 @@ if [ "$ENVIRONMENT" = "production" ]; then
     configure_domain
 fi
 
-# 必要なディレクトリの作成（本番環境のみ）
-if [ "$ENVIRONMENT" = "production" ]; then
+# 必要なディレクトリの作成（本番環境のLinux/Unixのみ）
+if [ "$ENVIRONMENT" = "production" ] && [ "$OS_TYPE" != "windows" ]; then
     print_info "必要なディレクトリを作成中..."
     sudo mkdir -p /var/log/kokkosofter /var/run/kokkosofter
     sudo chown -R www-data:www-data /var/log/kokkosofter /var/run/kokkosofter
@@ -294,7 +328,7 @@ if [ "$ENVIRONMENT" = "production" ]; then
 
     print_success "ディレクトリとファイル権限の設定が完了しました"
 else
-    print_info "開発環境では権限設定をスキップします"
+    print_info "開発環境またはWindowsでは権限設定をスキップします"
     # 開発環境用のディレクトリ作成
     mkdir -p $PROJECT_DIR/static $PROJECT_DIR/media $PROJECT_DIR/staticfiles
     mkdir -p $PROJECT_DIR/media/avatars $PROJECT_DIR/media/post_images
@@ -309,8 +343,8 @@ python manage.py makemigrations
 python manage.py migrate
 print_success "データベースマイグレーションが完了しました"
 
-# マイグレーション後にデータベースファイルの権限を再設定（本番環境のみ）
-if [ "$ENVIRONMENT" = "production" ]; then
+# マイグレーション後にデータベースファイルの権限を再設定（本番環境のLinux/Unixのみ）
+if [ "$ENVIRONMENT" = "production" ] && [ "$OS_TYPE" != "windows" ]; then
     print_info "マイグレーション後のデータベース権限を設定中..."
     if [ -f "$PROJECT_DIR/db.sqlite3" ]; then
         sudo chown www-data:www-data $PROJECT_DIR/db.sqlite3
@@ -334,7 +368,7 @@ if [ "$ENVIRONMENT" = "development" ]; then
 fi
 
 # サーバー起動の準備
-if [ "$ENVIRONMENT" = "production" ]; then
+if [ "$ENVIRONMENT" = "production" ] && [ "$OS_TYPE" != "windows" ]; then
     print_info "本番環境のNginx設定を適用中..."
     
     # Nginxデフォルトサイトを無効化
@@ -374,10 +408,14 @@ if [ "$ENVIRONMENT" = "production" ]; then
     print_info "📋 ログの確認:"
     print_info "  sudo journalctl -u kokkosofter -f"
     print_info "  sudo journalctl -u nginx -f"
-elif [ "$ENVIRONMENT" = "development" ]; then
+elif [ "$ENVIRONMENT" = "development" ] || [ "$OS_TYPE" = "windows" ]; then
     print_success "開発環境のセットアップが完了しました！"
     print_info "開発サーバーを起動するには:"
-    print_info "  python manage.py runserver 0.0.0.0:8000"
+    if [ "$OS_TYPE" = "windows" ]; then
+        print_info "  venv\\Scripts\\activate && python manage.py runserver 0.0.0.0:8000"
+    else
+        print_info "  source venv/bin/activate && python manage.py runserver 0.0.0.0:8000"
+    fi
     print_info ""
     print_info "サーバーを今すぐ起動しますか？ [y/N]"
     read -r response

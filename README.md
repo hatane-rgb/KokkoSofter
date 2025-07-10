@@ -28,6 +28,63 @@
 - Node.js 18+ (TailwindCSS用)
 - Git
 
+### 📦 必要なアプリケーションのインストール
+
+#### Windows
+```powershell
+# Python（Microsoft Store または python.org から）
+winget install Python.Python.3.12
+
+# Node.js
+winget install OpenJS.NodeJS
+
+# Git
+winget install Git.Git
+
+# または Chocolatey を使用
+choco install python nodejs git
+```
+
+#### Ubuntu/Debian
+```bash
+# システムの更新
+sudo apt update && sudo apt upgrade -y
+
+# Python 3.8+ とpip
+sudo apt install python3 python3-pip python3-venv -y
+
+# Node.js 18+ (NodeSourceリポジトリから)
+curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+sudo apt install nodejs -y
+
+# Git
+sudo apt install git -y
+
+# 必要に応じて追加パッケージ
+sudo apt install build-essential -y
+```
+
+#### CentOS/RHEL/Fedora
+```bash
+# Python 3.8+
+sudo dnf install python3 python3-pip python3-venv -y
+
+# Node.js 18+
+sudo dnf install nodejs npm -y
+
+# Git
+sudo dnf install git -y
+```
+
+#### macOS
+```bash
+# Homebrew を使用
+brew install python@3.12 node git
+
+# または MacPorts
+sudo port install python312 nodejs18 git
+```
+
 ### 🎯 自動セットアップ（推奨）
 
 #### 開発環境
@@ -48,6 +105,9 @@ make run
 # リポジトリをクローン
 git clone https://github.com/hatane-rgb/KokkoSofter.git
 cd KokkoSofter
+
+# 実行権限を付与
+chmod +x deploy.sh
 
 # 本番環境デプロイ（完全自動化）
 ./deploy.sh production
@@ -98,6 +158,54 @@ make run              # 開発サーバー起動
 make migrate          # DBマイグレーション
 make superuser        # スーパーユーザー作成
 make test             # テスト実行
+```
+
+## ⚠️ トラブルシューティング
+
+### 権限エラー（Permission Denied）
+```bash
+# deploy.shに実行権限を付与
+chmod +x deploy.sh
+
+# Linux/macOSでの権限エラー
+sudo chown -R $USER:$USER .
+```
+
+### Python/Node.js が見つからない
+```bash
+# Pythonバージョン確認
+python3 --version
+python --version
+
+# Node.jsバージョン確認  
+node --version
+npm --version
+
+# PATH設定（.bashrc または .zshrc に追加）
+export PATH="/usr/local/bin:$PATH"
+```
+
+### 仮想環境の問題
+```bash
+# 仮想環境を削除して再作成
+rm -rf venv
+python3 -m venv venv
+
+# Windows
+venv\Scripts\activate
+
+# Mac/Linux
+source venv/bin/activate
+```
+
+### TailwindCSS ビルドエラー
+```bash
+# Node.js依存関係を再インストール
+rm -rf node_modules package-lock.json
+npm install
+
+# TailwindCSSビルド
+npm run build
 ```
 
 アプリケーションは http://127.0.0.1:8000/ でアクセス可能です。
