@@ -22,6 +22,31 @@ print_warning() {
     echo -e "\033[33m[WARNING]\033[0m $1"
 }
 
+# 仮想環境のトラブルシューティング用関数
+troubleshoot_venv() {
+    print_error "仮想環境のトラブルシューティング:"
+    print_error "======================================"
+    print_error "1. Pythonが正しくインストールされているか確認:"
+    print_error "   python --version または python3 --version"
+    print_error ""
+    print_error "2. venvモジュールがインストールされているか確認:"
+    if [ "$OS_TYPE" = "linux" ]; then
+        print_error "   Ubuntu/Debian: sudo apt install python3-venv"
+        print_error "   CentOS/RHEL/Fedora: sudo dnf install python3-venv"
+    elif [ "$OS_TYPE" = "macos" ]; then
+        print_error "   brew install python (Homebrewを使用)"
+    elif [ "$OS_TYPE" = "windows" ]; then
+        print_error "   Python for Windowsを公式サイトからダウンロード"
+    fi
+    print_error ""
+    print_error "3. 手動で仮想環境を作成:"
+    print_error "   python -m venv venv"
+    print_error "   または python3 -m venv venv"
+    print_error ""
+    print_error "4. ディスク容量と権限を確認"
+    print_error "======================================"
+}
+
 # OS検出
 detect_os() {
     if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "cygwin" || "$OSTYPE" == "win32" ]]; then
@@ -123,11 +148,30 @@ configure_domain() {
 # 環境変数の設定
 ENVIRONMENT=${1:-development}
 
+# 現在のディレクトリを取得
+CURRENT_DIR="$(pwd)"
+
 # 環境に応じてプロジェクトディレクトリを設定
 if [ "$ENVIRONMENT" = "production" ]; then
-    PROJECT_DIR="/var/www/kokkosofter"
+    # 本番環境では適切なプロジェクトディレクトリを決定
+    if [ "$OS_TYPE" = "windows" ]; then
+        # Windowsでは現在のディレクトリを使用
+        PROJECT_DIR="$CURRENT_DIR"
+    else
+        # Linux/Unix本番環境では /var/www/kokkosofter を使用
+        PROJECT_DIR="/var/www/kokkosofter"
+        
+        # プロジェクトディレクトリが存在しない場合は作成してコピー
+        if [ ! -d "$PROJECT_DIR" ]; then
+            print_info "本番環境用プロジェクトディレクトリを作成中..."
+            sudo mkdir -p "$PROJECT_DIR"
+            sudo cp -r "$CURRENT_DIR/"* "$PROJECT_DIR/"
+            sudo chown -R $(whoami):$(whoami) "$PROJECT_DIR"
+            print_success "✅ プロジェクトファイルを $PROJECT_DIR にコピーしました"
+        fi
+    fi
 else
-    PROJECT_DIR="$(pwd)"  # 開発環境では現在のディレクトリを使用
+    PROJECT_DIR="$CURRENT_DIR"  # 開発環境では現在のディレクトリを使用
 fi
 
 VENV_DIR="$PROJECT_DIR/venv"
@@ -138,23 +182,23 @@ print_info "プロジェクトディレクトリ: $PROJECT_DIR"
 
 # Git所有者問題の解決
 print_info "Git設定を確認中..."
-if [ -d "$PROJECT_DIR/.git" ]; then
+cd "$PROJECT_DIR"
+
+if [ -d ".git" ]; then
     # safe.directoryに追加してdubious ownership警告を解決
-    git config --global --add safe.directory $PROJECT_DIR 2>/dev/null || true
+    git config --global --add safe.directory "$PROJECT_DIR" 2>/dev/null || true
     print_success "✅ Git safe.directory設定を追加しました"
     
     # 本番環境でのみ最新のコードを取得
-    if [ "$ENVIRONMENT" = "production" ]; then
+    if [ "$ENVIRONMENT" = "production" ] && [ "$OS_TYPE" != "windows" ]; then
         print_info "最新のコードを取得中..."
-        cd $PROJECT_DIR
         git pull origin main
         print_success "✅ 最新のコードを取得しました"
     else
         print_info "開発環境では現在のコードを使用します"
-        cd $PROJECT_DIR
     fi
 else
-    cd $PROJECT_DIR
+    print_warning "Gitリポジトリが見つかりません。現在のファイルを使用します。"
 fi
 
 # Python バージョンの確認
@@ -181,23 +225,106 @@ PYTHON_VERSION=$($PYTHON_CMD --version | cut -d " " -f 2)
 print_info "Python バージョン: $PYTHON_VERSION"
 
 # 仮想環境の作成
+print_info "仮想環境ディレクトリ: $VENV_DIR"
 if [ ! -d "$VENV_DIR" ]; then
     print_info "仮想環境を作成中..."
-    $PYTHON_CMD -m venv $VENV_DIR
-    print_success "仮想環境を作成しました"
+    
+    # venvモジュールが利用可能か確認
+    if ! $PYTHON_CMD -m venv --help >/dev/null 2>&1; then
+        print_error "Python venvモジュールが利用できません"
+        print_error "以下のコマンドでvenvモジュールをインストールしてください:"
+        if [ "$OS_TYPE" = "linux" ]; then
+            print_error "  sudo apt install python3-venv  # Ubuntu/Debian"
+            print_error "  sudo dnf install python3-venv  # CentOS/RHEL/Fedora"
+        fi
+        exit 1
+    fi
+    
+    # 仮想環境作成を実行
+    if $PYTHON_CMD -m venv "$VENV_DIR"; then
+        print_success "✅ 仮想環境を作成しました: $VENV_DIR"
+    else
+        print_error "❌ 仮想環境の作成に失敗しました"
+        troubleshoot_venv
+        exit 1
+    fi
+    
+    # 仮想環境が正常に作成されたか確認
+    if [ ! -d "$VENV_DIR" ]; then
+        print_error "❌ 仮想環境ディレクトリが作成されませんでした"
+        exit 1
+    fi
+    
+    # アクティベーションスクリプトの存在確認
+    if [ "$OS_TYPE" = "windows" ]; then
+        ACTIVATE_SCRIPT="$VENV_DIR/Scripts/activate"
+    else
+        ACTIVATE_SCRIPT="$VENV_DIR/bin/activate"
+    fi
+    
+    if [ ! -f "$ACTIVATE_SCRIPT" ]; then
+        print_error "❌ 仮想環境のアクティベーションスクリプトが見つかりません: $ACTIVATE_SCRIPT"
+        print_error "仮想環境の作成が不完全です。再試行してください。"
+        rm -rf "$VENV_DIR"  # 不完全な仮想環境を削除
+        exit 1
+    fi
+    
 else
-    print_info "既存の仮想環境を使用します"
+    print_info "既存の仮想環境を使用します: $VENV_DIR"
+    
+    # 既存の仮想環境の健全性チェック
+    if [ "$OS_TYPE" = "windows" ]; then
+        ACTIVATE_SCRIPT="$VENV_DIR/Scripts/activate"
+        PYTHON_EXE="$VENV_DIR/Scripts/python.exe"
+    else
+        ACTIVATE_SCRIPT="$VENV_DIR/bin/activate"
+        PYTHON_EXE="$VENV_DIR/bin/python"
+    fi
+    
+    if [ ! -f "$ACTIVATE_SCRIPT" ] || [ ! -f "$PYTHON_EXE" ]; then
+        print_warning "⚠️ 既存の仮想環境が破損している可能性があります"
+        print_info "仮想環境を再作成します..."
+        rm -rf "$VENV_DIR"
+        
+        if $PYTHON_CMD -m venv "$VENV_DIR"; then
+            print_success "✅ 仮想環境を再作成しました"
+        else
+            print_error "❌ 仮想環境の再作成に失敗しました"
+            troubleshoot_venv
+            exit 1
+        fi
+    fi
 fi
-
-# プロジェクトディレクトリに移動
-cd $PROJECT_DIR
 
 # 仮想環境の有効化（OS別）
 print_info "仮想環境を有効化中..."
 if [ "$OS_TYPE" = "windows" ]; then
-    source $VENV_DIR/Scripts/activate
+    ACTIVATE_SCRIPT="$VENV_DIR/Scripts/activate"
+    if [ ! -f "$ACTIVATE_SCRIPT" ]; then
+        print_error "❌ Windowsの仮想環境アクティベーションスクリプトが見つかりません: $ACTIVATE_SCRIPT"
+        exit 1
+    fi
+    source "$ACTIVATE_SCRIPT"
 else
-    source $VENV_DIR/bin/activate
+    ACTIVATE_SCRIPT="$VENV_DIR/bin/activate"
+    if [ ! -f "$ACTIVATE_SCRIPT" ]; then
+        print_error "❌ 仮想環境アクティベーションスクリプトが見つかりません: $ACTIVATE_SCRIPT"
+        exit 1
+    fi
+    source "$ACTIVATE_SCRIPT"
+fi
+
+# 仮想環境が正常に有効化されたか確認
+if [ -z "$VIRTUAL_ENV" ]; then
+    print_warning "⚠️ 仮想環境の有効化に失敗した可能性があります"
+    print_info "手動で仮想環境を有効化してください:"
+    if [ "$OS_TYPE" = "windows" ]; then
+        print_info "  $VENV_DIR\\Scripts\\activate"
+    else
+        print_info "  source $VENV_DIR/bin/activate"
+    fi
+else
+    print_success "✅ 仮想環境が正常に有効化されました: $VIRTUAL_ENV"
 fi
 
 # 依存関係のインストール
@@ -347,9 +474,6 @@ else
     mkdir -p $PROJECT_DIR/static $PROJECT_DIR/media $PROJECT_DIR/staticfiles
     mkdir -p $PROJECT_DIR/media/avatars $PROJECT_DIR/media/post_images
 fi
-
-# Django プロジェクトディレクトリに移動（すでにPROJECT_DIRにいるので不要）
-# cd KokkoSofter
 
 # データベースマイグレーション
 print_info "データベースマイグレーションを実行中..."
