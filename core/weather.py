@@ -1,202 +1,168 @@
 import requests
 import json
-from typing import Dict, Optional, Tuple
+import os
+from typing import Dict, Optional
+from django.conf import settings
 
 class WeatherService:
     """
-    気象庁APIを使用した天気情報取得サービス
+    OpenWeatherMap APIを使用した高精度天気情報取得サービス
     """
     
     def __init__(self):
-        self.base_url = "https://www.jma.go.jp/bosai/forecast/data/forecast/"
-        self.area_url = "https://www.jma.go.jp/bosai/common/const/area.json"
-        # 逆ジオコーディング用のAPI (OpenStreetMap Nominatim)
-        self.geocoding_url = "https://nominatim.openstreetmap.org/reverse"
+        # OpenWeatherMap API設定
+        self.api_key = getattr(settings, 'OPENWEATHER_API_KEY', '40c2e9c8a8ea9c1bba456b9fa3e8b7dd')  # 環境変数から取得
+        self.base_url = "https://api.openweathermap.org/data/2.5"
+        self.geocoding_url = "https://api.openweathermap.org/geo/1.0"
         
-    def get_area_code_by_location(self, lat: float, lon: float) -> Optional[str]:
-        """
-        緯度経度から最寄りの地域コードを取得
-        簡易実装：日本の主要都市との距離で判定
-        """
-        # 主要都市の座標と地域コード
-        major_cities = {
-            "130000": {"name": "東京", "lat": 35.6762, "lon": 139.6503},
-            "270000": {"name": "大阪", "lat": 34.6937, "lon": 135.5023},
-            "140000": {"name": "神奈川", "lat": 35.4478, "lon": 139.6425},
-            "230000": {"name": "愛知", "lat": 35.1815, "lon": 136.9066},
-            "010000": {"name": "北海道", "lat": 43.0642, "lon": 141.3469},
-            "040000": {"name": "宮城", "lat": 38.2682, "lon": 140.8694},
-            "340000": {"name": "広島", "lat": 34.3853, "lon": 132.4553},
-            "400000": {"name": "福岡", "lat": 33.5904, "lon": 130.4017},
-            "470000": {"name": "沖縄", "lat": 26.2125, "lon": 127.6792},
-        }
-        
-        min_distance = float('inf')
-        closest_code = "130000"  # デフォルトは東京
-        
-        for code, city in major_cities.items():
-            # 簡易距離計算（度数での差分）
-            distance = ((lat - city["lat"]) ** 2 + (lon - city["lon"]) ** 2) ** 0.5
-            if distance < min_distance:
-                min_distance = distance
-                closest_code = code
-                
-        return closest_code
-    
-    def get_weather_forecast(self, area_code: str) -> Optional[Dict]:
-        """
-        地域コードから天気予報を取得
-        """
-        try:
-            url = f"{self.base_url}{area_code}.json"
-            response = requests.get(url, timeout=10)
-            response.raise_for_status()
-            return response.json()
-        except requests.RequestException as e:
-            print(f"Weather API error: {e}")
-            return None
-    
-    def parse_weather_data(self, weather_data: Dict) -> Optional[Dict]:
-        """
-        天気データを解析して必要な情報を抽出
-        """
-        try:
-            if not weather_data or len(weather_data) == 0:
-                return None
-                
-            # 最初の予報データを使用
-            forecast = weather_data[0]
-            
-            # 今日の天気情報を取得
-            time_series = forecast.get("timeSeries", [])
-            if not time_series:
-                return None
-                
-            # 天気情報
-            weather_series = time_series[0] if len(time_series) > 0 else None
-            temp_series = time_series[1] if len(time_series) > 1 else None
-            
-            result = {
-                "area_name": "",
-                "weather": "情報なし",
-                "temperature": "",
-                "update_time": ""
-            }
-            
-            # 地域名
-            if weather_series and "areas" in weather_series:
-                areas = weather_series["areas"]
-                if areas and len(areas) > 0:
-                    result["area_name"] = areas[0].get("area", {}).get("name", "")
-            
-            # 天気
-            if weather_series and "areas" in weather_series:
-                areas = weather_series["areas"]
-                if areas and len(areas) > 0 and "weathers" in areas[0]:
-                    weathers = areas[0]["weathers"]
-                    if weathers and len(weathers) > 0:
-                        result["weather"] = weathers[0]
-            
-            # 気温
-            if temp_series and "areas" in temp_series:
-                areas = temp_series["areas"]
-                if areas and len(areas) > 0:
-                    temps = areas[0].get("temps", [])
-                    if temps and len(temps) > 0:
-                        result["temperature"] = f"{temps[0]}°C"
-            
-            # 更新時間
-            if forecast.get("reportDatetime"):
-                result["update_time"] = forecast["reportDatetime"]
-            
-            return result
-            
-        except (KeyError, IndexError, TypeError) as e:
-            print(f"Weather data parsing error: {e}")
-            return None
-    
     def get_weather_by_location(self, lat: float, lon: float) -> Optional[Dict]:
         """
-        緯度経度から天気情報を取得
-        """
-        # 位置情報から地名を取得
-        location_info = self.get_location_name(lat, lon)
-        
-        area_code = self.get_area_code_by_location(lat, lon)
-        if not area_code:
-            return None
-            
-        weather_data = self.get_weather_forecast(area_code)
-        if not weather_data:
-            return None
-            
-        weather_result = self.parse_weather_data(weather_data)
-        if not weather_result:
-            return None
-        
-        # 位置情報を追加
-        weather_result.update({
-            'prefecture': location_info.get('prefecture', ''),
-            'city': location_info.get('city', ''),
-            'full_address': location_info.get('full_address', '')
-        })
-        
-        return weather_result
-    
-    def get_location_name(self, lat: float, lon: float) -> Dict[str, str]:
-        """
-        緯度経度から都道府県・市町村名を取得
+        緯度経度から高精度な天気情報を取得
         """
         try:
+            # 現在の天気を取得
+            weather_url = f"{self.base_url}/weather"
+            params = {
+                'lat': lat,
+                'lon': lon,
+                'appid': self.api_key,
+                'units': 'metric',  # 摂氏温度
+                'lang': 'ja'        # 日本語
+            }
+            
+            response = requests.get(weather_url, params=params, timeout=10)
+            
+            if response.status_code != 200:
+                print(f"OpenWeatherMap API error: {response.status_code}")
+                return self._get_fallback_weather(lat, lon)
+            
+            data = response.json()
+            
+            # 場所名を取得（逆ジオコーディング）
+            location_info = self._get_location_name(lat, lon)
+            
+            # データを整形
+            weather_info = {
+                'prefecture': location_info.get('prefecture', '不明'),
+                'city': location_info.get('city', '不明'),
+                'area_name': f"{location_info.get('prefecture', '')} {location_info.get('city', '')}".strip(),
+                'weather': data['weather'][0]['description'],
+                'temperature': f"{round(data['main']['temp'])}°C",
+                'humidity': f"{data['main']['humidity']}%",
+                'pressure': f"{data['main']['pressure']}hPa",
+                'wind_speed': f"{data['wind']['speed']}m/s" if 'wind' in data else '0m/s',
+                'feels_like': f"{round(data['main']['feels_like'])}°C",
+                'visibility': f"{data.get('visibility', 0) / 1000:.1f}km",
+                'update_time': data['dt'],
+                'icon': data['weather'][0]['icon'],
+                'coord': {
+                    'lat': data['coord']['lat'],
+                    'lon': data['coord']['lon']
+                }
+            }
+            
+            return weather_info
+            
+        except requests.exceptions.RequestException as e:
+            print(f"Weather API request error: {e}")
+            return self._get_fallback_weather(lat, lon)
+        except Exception as e:
+            print(f"Weather service error: {e}")
+            return None
+    
+    def _get_location_name(self, lat: float, lon: float) -> Dict[str, str]:
+        """
+        緯度経度から地名を取得（逆ジオコーディング）
+        """
+        try:
+            # OpenStreetMap Nominatimを使用（無料）
+            nominatim_url = "https://nominatim.openstreetmap.org/reverse"
             params = {
                 'lat': lat,
                 'lon': lon,
                 'format': 'json',
                 'accept-language': 'ja',
-                'addressdetails': 1
+                'zoom': 10
             }
             
-            response = requests.get(self.geocoding_url, params=params, timeout=10)
-            response.raise_for_status()
-            data = response.json()
+            headers = {
+                'User-Agent': 'KokkoSofter Weather App'
+            }
             
-            address = data.get('address', {})
+            response = requests.get(nominatim_url, params=params, headers=headers, timeout=5)
             
-            # 日本の住所構造に合わせて抽出
-            prefecture = (
-                address.get('state') or 
-                address.get('province') or 
-                address.get('county') or 
-                address.get('prefecture', '')
-            )
-            
-            city = (
-                address.get('city') or 
-                address.get('town') or 
-                address.get('village') or 
-                address.get('municipality', '')
-            )
-            
-            # 「〜県」「〜都」「〜府」「〜道」が含まれていない場合は追加
-            if prefecture and not any(suffix in prefecture for suffix in ['県', '都', '府', '道']):
-                # 主要な都道府県名のマッピング
-                prefecture_mapping = {
-                    'Tokyo': '東京都',
-                    'Osaka': '大阪府',
-                    'Kyoto': '京都府',
-                    'Hokkaido': '北海道'
+            if response.status_code == 200:
+                data = response.json()
+                address = data.get('address', {})
+                
+                # 日本の住所体系に合わせて抽出
+                prefecture = (
+                    address.get('state') or 
+                    address.get('prefecture') or 
+                    address.get('province') or
+                    '不明'
+                )
+                
+                city = (
+                    address.get('city') or 
+                    address.get('town') or 
+                    address.get('village') or 
+                    address.get('suburb') or
+                    '不明'
+                )
+                
+                return {
+                    'prefecture': prefecture,
+                    'city': city
                 }
-                prefecture = prefecture_mapping.get(prefecture, prefecture + '県')
-            
-            return {
-                'prefecture': prefecture,
-                'city': city,
-                'full_address': data.get('display_name', '')
-            }
-            
-        except requests.RequestException as e:
-            print(f"Geocoding API error: {e}")
-            return {'prefecture': '', 'city': '', 'full_address': ''}
-        except (KeyError, TypeError) as e:
-            print(f"Geocoding data parsing error: {e}")
-            return {'prefecture': '', 'city': '', 'full_address': ''}
+                
+        except Exception as e:
+            print(f"Geocoding error: {e}")
+        
+        # フォールバック：大まかな地域判定
+        return self._estimate_location_by_coords(lat, lon)
+    
+    def _estimate_location_by_coords(self, lat: float, lon: float) -> Dict[str, str]:
+        """
+        座標から大まかな地域を推定
+        """
+        # 日本の主要地域の座標範囲
+        regions = [
+            {'name': '北海道', 'city': '札幌', 'lat_min': 41.0, 'lat_max': 46.0, 'lon_min': 139.0, 'lon_max': 146.0},
+            {'name': '東京都', 'city': '東京', 'lat_min': 35.5, 'lat_max': 36.0, 'lon_min': 139.0, 'lon_max': 140.0},
+            {'name': '大阪府', 'city': '大阪', 'lat_min': 34.4, 'lat_max': 35.0, 'lon_min': 135.0, 'lon_max': 136.0},
+            {'name': '愛知県', 'city': '名古屋', 'lat_min': 34.8, 'lat_max': 35.5, 'lon_min': 136.5, 'lon_max': 137.5},
+            {'name': '福岡県', 'city': '福岡', 'lat_min': 33.2, 'lat_max': 34.0, 'lon_min': 130.0, 'lon_max': 131.0},
+            {'name': '沖縄県', 'city': '那覇', 'lat_min': 24.0, 'lat_max': 27.0, 'lon_min': 123.0, 'lon_max': 132.0},
+        ]
+        
+        for region in regions:
+            if (region['lat_min'] <= lat <= region['lat_max'] and 
+                region['lon_min'] <= lon <= region['lon_max']):
+                return {
+                    'prefecture': region['name'],
+                    'city': region['city']
+                }
+        
+        return {'prefecture': '日本', 'city': '不明'}
+    
+    def _get_fallback_weather(self, lat: float, lon: float) -> Optional[Dict]:
+        """
+        メインAPIが失敗した場合のフォールバック天気情報
+        """
+        location_info = self._estimate_location_by_coords(lat, lon)
+        return {
+            'prefecture': location_info['prefecture'],
+            'city': location_info['city'],
+            'area_name': f"{location_info['prefecture']} {location_info['city']}",
+            'weather': '天気情報を取得できませんでした',
+            'temperature': '--°C',
+            'humidity': '--%',
+            'pressure': '--hPa',
+            'wind_speed': '--m/s',
+            'feels_like': '--°C',
+            'visibility': '--km',
+            'update_time': None,
+            'icon': '01d',
+            'coord': {'lat': lat, 'lon': lon}
+        }

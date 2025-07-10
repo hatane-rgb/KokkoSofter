@@ -87,6 +87,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'core.middleware.UpdateLastSeenMiddleware',  # オンラインユーザー追跡
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -226,3 +227,10 @@ SESSION_EXPIRE_AT_BROWSER_CLOSE = False
 # ファイルアップロード設定
 FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10MB
 DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10MB
+
+# 外部API設定
+# OpenWeatherMap API
+OPENWEATHER_API_KEY = config(
+    'OPENWEATHER_API_KEY', 
+    default='40c2e9c8a8ea9c1bba456b9fa3e8b7dd'  # 開発用デフォルトキー（本番では環境変数で設定）
+)

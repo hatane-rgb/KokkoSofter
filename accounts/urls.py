@@ -1,7 +1,7 @@
 from .views import (
     CustomLoginView, profile_settings, admin_dashboard, admin_users,
     admin_create_user, admin_toggle_user_status, admin_toggle_staff_status,
-    admin_edit_user, admin_delete_user
+    admin_edit_user, admin_delete_user, admin_change_user_role, admin_bulk_role_management
 )
 from django.urls import path
 from django.contrib.auth.views import LogoutView
@@ -22,4 +22,6 @@ urlpatterns = [
     path('admin-delete-user/<int:user_id>/', admin_delete_user, name='admin_delete_user'),
     path('admin-toggle-user/<int:user_id>/', admin_toggle_user_status, name='admin_toggle_user_status'),
     path('admin-toggle-staff/<int:user_id>/', admin_toggle_staff_status, name='admin_toggle_staff_status'),
+    path('admin-change-role/<int:user_id>/', admin_change_user_role, name='admin_change_user_role'),
+    path('admin-bulk-roles/', admin_bulk_role_management, name='admin_bulk_role_management'),
 ]

@@ -14,7 +14,7 @@
     <!-- ログイン済みユーザー向けの投稿表示 -->
     <div class="flex flex-col items-center space-y-8 w-full relative z-0 post-container">
       {% for post in posts %}
-        <article class="card bg-base-100 shadow-2xl w-full rounded-2xl border border-base-content/10 hover:shadow-3xl hover:scale-[1.01] transition-all duration-300 backdrop-blur-lg relative z-0 post-card">
+        <article class="card bg-base-100 shadow-2xl w-full rounded-2xl border border-base-content/10 hover:shadow-3xl hover:scale-[1.01] transition-all duration-300 backdrop-blur-lg relative post-card" style="z-index: 1;">
           <div class="card-body p-6">
             <!-- ヘッダー部分 -->
             <div class="flex items-center justify-between mb-4">
@@ -35,7 +35,9 @@
                         <div class="flex-1">
                           <div class="flex items-center space-x-2">
                             <h3 class="font-bold text-lg text-primary">{{ post.author.username }}</h3>
-                            <div class="badge badge-primary badge-sm">メンバー</div>
+                            <span class="badge {{ post.author.profile.get_role_badge_class }} badge-sm">
+                              {{ post.author.profile.get_role_display_with_icon }}
+                            </span>
                           </div>
                           <p class="text-sm text-base-content/70 mt-1">
                             {% if post.author.first_name or post.author.last_name %}
@@ -76,7 +78,9 @@
                 <div class="flex-1">
                   <div class="flex items-center space-x-2">
                     <h4 class="font-bold text-lg">{{ post.author.username }}</h4>
-                    <div class="badge badge-ghost badge-sm">📝</div>
+                    <span class="badge {{ post.author.profile.get_role_badge_class }} badge-xs">
+                      {{ post.author.profile.get_role_display_with_icon }}
+                    </span>
                   </div>
                   <div class="flex items-center space-x-2 mt-1">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -88,13 +92,13 @@
                 </div>
               </div>
               <!-- 投稿オプション -->
-              <div class="dropdown dropdown-end">
+              <div class="dropdown dropdown-end" style="z-index: 10;">
                 <label tabindex="0" class="btn btn-ghost btn-sm btn-circle">
                   <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
                   </svg>
                 </label>
-                <ul tabindex="0" class="dropdown-content menu p-2 shadow-xl bg-base-100 rounded-box w-52 border border-base-content/10">
+                <ul tabindex="0" class="dropdown-content menu p-2 shadow-xl bg-base-100 rounded-box w-52 border border-base-content/10" style="z-index: 50;">
                   <li><a class="text-sm">🔗 リンクをコピー</a></li>
                   <li><a class="text-sm">📤 シェア</a></li>
                   <li><a class="text-sm">🔖 保存</a></li>
@@ -282,6 +286,45 @@
     </div>
   </div>
 
+  <style>
+      /* 投稿メニューz-index修正 */
+      .post-menu {
+        z-index: 12000 !important;
+        position: absolute !important;
+      }
+      /* オンラインユーザー欄のスクロール */
+      .online-list {
+        max-height: 180px;
+        overflow-y: auto;
+        scrollbar-width: thin;
+      }
+      /* バッジの文字はみ出し修正 */
+      .badge {
+        max-width: 90px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: 0.92em;
+        padding-left: 0.7em;
+        padding-right: 0.7em;
+        min-width: 2.2em;
+        box-sizing: border-box;
+      }
+      /* 投稿カードのz-indexを下げる */
+      .post-card {
+        z-index: 1 !important;
+      }
+      /* 投稿カードのレイアウト崩れ防止 */
+      .post-card {
+        min-width: 0;
+        word-break: break-word;
+      }
+      /* 投稿カード内のflex調整 */
+      .card-body {
+        gap: 0.5rem;
+      }
+    </style>
+
   {% if user.is_authenticated %}
   <script>
   // CSRF トークンの設定
@@ -336,12 +379,12 @@
           // 投稿カードを削除
           const postCard = document.querySelector(`[data-post-id="${currentDeletePostId}"]`).closest('.post-card');
           if (postCard) {
-            postCard.style.transition = 'opacity 0.5s ease-out, transform 0.5s ease-out';
+            postCard.style.transition = 'opacity 0.2s ease-out, transform 0.2s ease-out';
             postCard.style.opacity = '0';
             postCard.style.transform = 'scale(0.95)';
             setTimeout(() => {
               postCard.remove();
-            }, 500);
+            }, 200);
           }
           
           // 成功メッセージを表示
@@ -378,7 +421,7 @@
     document.body.appendChild(toast);
     setTimeout(() => {
       toast.remove();
-    }, 3000);
+    }, 2000); // 3000ms → 2000msに短縮
   }
   </script>
   {% endif %}

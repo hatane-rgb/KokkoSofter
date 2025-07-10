@@ -1,0 +1,578 @@
+/* KokkoSofter メインスタイル */
+
+/* ページ遷移・ローディングアニメーション - daisyUI標準使用 */
+.transition-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 10000;
+  backdrop-filter: blur(4px);
+}
+
+.transition-overlay.active {
+  display: flex;
+  opacity: 1;
+  animation: fadeIn 0.15s ease-out;
+}
+
+.transition-overlay .loading-content {
+  text-align: center;
+  color: white;
+  padding: 2rem;
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* daisyUI標準のローディングスピナーを使用 */
+/* .loading.loading-spinner.loading-lgクラスをHTMLで直接使用 */
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.page-content.transitioning {
+  transition: all 0.15s ease-out;
+  transform: scale(0.98);
+  opacity: 0.7;
+}
+
+/* レスポンシブ調整 */
+@media (max-width: 768px) {
+  .desktop-sidebar {
+    display: none !important;
+  }
+  
+  .mobile-header {
+    display: flex !important;
+  }
+  
+  .sidebar-sticky {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 280px !important;
+    height: 100vh !important;
+    z-index: 1000 !important;
+    transform: translateX(-100%) !important;
+    transition: transform 0.3s ease-in-out !important;
+    box-shadow: 2px 0 10px rgba(0,0,0,0.3) !important;
+    overflow-y: auto !important;
+    display: block !important;
+  }
+  
+  .sidebar-sticky.show {
+    transform: translateX(0) !important;
+  }
+  
+  .mobile-backdrop {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    background: rgba(0, 0, 0, 0.5) !important;
+    z-index: 999 !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out !important;
+  }
+  
+  .mobile-backdrop.show {
+    opacity: 1 !important;
+    visibility: visible !important;
+  }
+  
+  body.sidebar-open {
+    overflow: hidden !important;
+    position: fixed !important;
+    width: 100% !important;
+  }
+}
+
+@media (min-width: 769px) {
+  .desktop-sidebar {
+    display: flex !important;
+  }
+  
+  .mobile-header {
+    display: none !important;
+  }
+  
+  .sidebar-sticky {
+    position: sticky !important;
+    top: 1rem !important;
+    height: calc(100vh - 2rem) !important;
+    overflow-y: auto !important;
+    z-index: 100 !important;
+  }
+  
+  aside[data-sidebar="right"] {
+    position: sticky !important;
+    top: 1rem !important;
+    height: calc(100vh - 2rem) !important;
+    overflow-y: auto !important;
+    z-index: 100 !important;
+  }
+  
+  .mobile-backdrop {
+    display: none !important;
+  }
+}
+
+.sidebar-full-height {
+  min-height: calc(100vh - 2rem);
+  max-height: calc(100vh - 2rem);
+}
+
+/* バッジの文字潰れ対策 - 自然な表示を優先 */
+.badge {
+  font-size: 0.75rem !important;
+  padding: 0.25rem 0.5rem !important;
+  line-height: 1.2 !important;
+  white-space: nowrap;
+  /* max-widthとoverflowを削除して自然なサイズに */
+}
+
+.badge-xs {
+  font-size: 0.7rem !important;
+  padding: 0.15rem 0.35rem !important;
+}
+
+.badge-sm {
+  font-size: 0.72rem !important;
+  padding: 0.2rem 0.4rem !important;
+}
+
+/* ロールバッジの調整 - 自然な幅で表示 */
+.role-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.7rem !important;
+  padding: 0.2rem 0.4rem !important;
+  white-space: nowrap;
+  /* 文字が潰れないように自然な幅を保持 */
+}
+
+/* オンラインユーザーリストのバッジも自然な幅に */
+.online-list .badge {
+  font-size: 0.65rem !important;
+  padding: 0.1rem 0.3rem !important;
+}
+
+/* 投稿カードのバッジも自然な幅に */
+.post-card .badge {
+  font-size: 0.7rem !important;
+}
+
+/* サイドバー内要素も自然な幅に */
+.sidebar-left .badge,
+.sidebar-right .badge {
+  font-size: 0.65rem !important;
+}
+
+/* 画像ビューワー */
+.image-viewer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.9);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  backdrop-filter: blur(2px);
+}
+
+.image-viewer img {
+  max-width: 90%;
+  max-height: 90%;
+  object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+.close-btn {
+  position: absolute;
+  top: 20px;
+  right: 30px;
+  font-size: 2rem;
+  color: white;
+  background: rgba(0, 0, 0, 0.7);
+  border: none;
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.close-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: scale(1.1);
+}
+
+/* ドラッグ可能な要素 */
+.drag-handle {
+  cursor: move;
+  user-select: none;
+}
+
+/* モーダルボックスのドラッグ対応 */
+.modal-box.draggable {
+  position: relative;
+  cursor: default;
+}
+
+/* 投稿フォームのドロップゾーン */
+#post-drop-zone {
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+#post-drop-zone:hover {
+  border-color: hsl(var(--p) / 0.6);
+  background-color: hsl(var(--p) / 0.05);
+}
+
+#post-drag-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  transition: opacity 0.2s ease;
+}
+
+/* 通知部分だけにスクロールを限定 - 完全版 */
+.notification-scroll-area {
+  max-height: 16rem !important; /* max-h-64 = 256px = 16rem */
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  scrollbar-width: thin;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  scroll-behavior: smooth;
+}
+
+.notification-scroll-area::-webkit-scrollbar {
+  width: 4px;
+}
+
+.notification-scroll-area::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.notification-scroll-area::-webkit-scrollbar-thumb {
+  background: hsl(var(--bc) / 0.3);
+  border-radius: 2px;
+}
+
+.notification-scroll-area::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--bc) / 0.5);
+}
+
+/* 通知リストの従来設定（安全のため残す） */
+.notification-list {
+  max-height: 300px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  border: 1px solid hsl(var(--bc) / 0.1);
+  border-radius: 0.5rem;
+  padding: 0.5rem;
+}
+
+.notification-list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.notification-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.notification-list::-webkit-scrollbar-thumb {
+  background: hsl(var(--bc) / 0.2);
+  border-radius: 2px;
+}
+
+/* 右サイドバー全体はスクロールしない（通知以外） */
+.sidebar-right {
+  overflow: visible !important;
+}
+
+.sidebar-right .h-full {
+  overflow: visible !important;
+}
+
+.sidebar-right .bg-base-100:not(.notification-scroll-area) {
+  max-height: none !important;
+  overflow: visible !important;
+}
+
+/* オンラインユーザーリストはスクロールしない */
+.online-list {
+  overflow: visible !important;
+  max-height: none !important;
+}
+
+/* 時計・天気・デバッグエリアもスクロールしない */
+.sidebar-right .text-center,
+.sidebar-right .rounded-lg:not(.notification-scroll-area) {
+  overflow: visible !important;
+  max-height: none !important;
+}
+
+/* 左サイドバー - 絶対にはみ出さない完全修正 */
+.sidebar-left {
+  /* TailwindのクラスとCSSを統一 - 224px (w-56) */
+  width: 224px !important;
+  max-width: 224px !important;
+  min-width: 224px !important;
+  overflow-x: hidden !important;
+  box-sizing: border-box !important;
+}
+
+/* サイドバー内の全要素を完全制御 */
+.sidebar-left *,
+.sidebar-left *::before,
+.sidebar-left *::after {
+  box-sizing: border-box !important;
+  max-width: 100% !important;
+  word-wrap: break-word !important;
+  word-break: break-word !important;
+  overflow-wrap: break-word !important;
+}
+
+/* サイドバー内のコンテナを完全制御 */
+.sidebar-left .bg-base-100,
+.sidebar-left .bg-base-200,
+.sidebar-left .p-3,
+.sidebar-left .p-4 {
+  width: 100% !important;
+  max-width: calc(224px - 24px) !important; /* padding考慮 */
+  overflow: hidden !important;
+}
+
+/* メニュー項目の完全制御 */
+.sidebar-left .menu li a,
+.sidebar-left .btn {
+  width: 100% !important;
+  max-width: 100% !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  font-size: 0.8rem !important;
+  padding: 0.5rem 0.75rem !important;
+  display: block !important;
+}
+
+/* テキスト要素の完全制御 */
+.sidebar-left .truncate,
+.sidebar-left p,
+.sidebar-left span:not(.badge) {
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+/* ボタンサイズの統一 */
+.sidebar-left .btn-xs {
+  font-size: 0.7rem !important;
+  padding: 0.375rem 0.5rem !important;
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+/* バッジは自然なサイズを保持（変更なし） */
+.sidebar-left .badge {
+  font-size: 0.65rem !important;
+  padding: 0.2rem 0.4rem !important;
+  white-space: nowrap !important;
+  /* max-widthを削除して自然な幅を保持 */
+}
+
+/* モバイルサイドバーのID指定による完全制御 */
+#mobile-sidebar {
+  width: 280px !important;
+  max-width: 280px !important;
+  min-width: 280px !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+}
+
+/* サイドバー内部コンテナの完全制御 */
+#mobile-sidebar .h-full {
+  width: 100% !important;
+  max-width: 280px !important;
+  overflow-x: hidden !important;
+  padding: 0.75rem !important; /* 統一したパディング */
+  background: transparent !important;
+}
+
+/* 見出し要素の完全制御 */
+#mobile-sidebar h2,
+#mobile-sidebar h3 {
+  font-size: 0.9rem !important;
+  font-weight: 600 !important;
+  margin-bottom: 0.75rem !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+/* ページロード時の表示制御 */
+html {
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+body {
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* 管理者用UI */
+.admin-only {
+  display: none;
+}
+
+.admin-user .admin-only {
+  display: block;
+}
+
+/* エラー表示の調整 */
+.error-message {
+  background: hsl(var(--er) / 0.1);
+  border: 1px solid hsl(var(--er) / 0.3);
+  color: hsl(var(--er));
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  margin: 0.5rem 0;
+}
+
+.success-message {
+  background: hsl(var(--su) / 0.1);
+  border: 1px solid hsl(var(--su) / 0.3);
+  color: hsl(var(--su));
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  margin: 0.5rem 0;
+}
+
+/* 投稿削除ボタンの調整 */
+.delete-btn {
+  transition: all 0.2s ease;
+}
+
+.delete-btn:hover {
+  transform: scale(1.05);
+}
+
+/* レスポンシブフォント調整 */
+@media (max-width: 640px) {
+  .badge {
+    font-size: 0.65rem !important;
+    /* max-widthを削除し自然な幅を保持 */
+  }
+  
+  .badge-xs {
+    font-size: 0.6rem !important;
+    /* max-widthを削除し自然な幅を保持 */
+  }
+}
+
+/* サイドバーリサイズ機能 */
+.resizable-sidebar {
+  position: relative;
+  resize: none; /* 標準のresizeを無効化 */
+}
+
+.resize-handle {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  width: 8px;
+  cursor: col-resize;
+  background: transparent;
+  z-index: 1000;
+  transition: background-color 0.2s ease;
+}
+
+.resize-handle:hover {
+  background: hsl(var(--bc) / 0.1);
+}
+
+.resize-handle::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 3px;
+  height: 80px;
+  background: hsl(var(--bc) / 0.5);
+  border-radius: 2px;
+  opacity: 1;
+  transition: all 0.2s ease;
+}
+
+.resize-handle:hover::before {
+  opacity: 1;
+  background: hsl(var(--p) / 0.6);
+}
+
+.resize-handle.resizing::before {
+  opacity: 1;
+  background: hsl(var(--p));
+}
+
+.resize-handle-right {
+  right: -6px;
+}
+
+.resize-handle-left {
+  left: -6px;
+}
+
+/* リサイズ中のUI状態 */
+.resizing {
+  user-select: none;
+  transition: none !important;
+}
+
+.resizing * {
+  pointer-events: none;
+}
+
+/* リサイズ時のカーソル */
+.resize-active {
+  cursor: col-resize !important;
+}
+
+.resize-active * {
+  cursor: col-resize !important;
+}
+
+

@@ -149,6 +149,41 @@
                                     </div>
                                 </div>
 
+                                <!-- プロフィール情報 -->
+                                <div class="card mt-4">
+                                    <div class="card-header">
+                                        <h6 class="mb-0"><i class="fas fa-user-tag mr-2"></i>プロフィール設定</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="form-group">
+                                            <label for="{{ profile_form.role.id_for_label }}">{{ profile_form.role.label }}</label>
+                                            {{ profile_form.role }}
+                                            {% if profile_form.role.errors %}
+                                                <div class="invalid-feedback d-block">
+                                                    {% for error in profile_form.role.errors %}
+                                                        {{ error }}
+                                                    {% endfor %}
+                                                </div>
+                                            {% endif %}
+                                            <small class="form-text text-muted">
+                                                ユーザーの役職を設定します。権限レベルが変わります。
+                                            </small>
+                                        </div>
+
+                                        <div class="form-group">
+                                            <label for="{{ profile_form.bio.id_for_label }}">{{ profile_form.bio.label }}</label>
+                                            {{ profile_form.bio }}
+                                            {% if profile_form.bio.errors %}
+                                                <div class="invalid-feedback d-block">
+                                                    {% for error in profile_form.bio.errors %}
+                                                        {{ error }}
+                                                    {% endfor %}
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+
                                 <hr>
 
                                 <div class="d-flex justify-content-between">

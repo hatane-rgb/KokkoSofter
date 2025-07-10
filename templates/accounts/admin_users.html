@@ -3,6 +3,7 @@
 {% block title %}ユーザー管理 - KokkoSofter{% endblock %}
 
 {% block content %}
+{% csrf_token %}
 <div class="container mx-auto px-4 py-8">
     <div class="mb-8">
         <div class="flex items-center space-x-4 mb-4">
@@ -73,6 +74,31 @@
                                             {% else %}
                                                 名前未設定
                                             {% endif %}
+                                        </div>
+                                        <!-- ロールバッジとクイック変更 -->
+                                        <div class="mt-1 flex items-center space-x-2">
+                                            <span class="badge {{ user.profile.get_role_badge_class }} badge-xs" id="role-badge-{{ user.id }}">
+                                                {{ user.profile.get_role_display_with_icon }}
+                                            </span>
+                                            <div class="dropdown dropdown-end">
+                                                <label tabindex="0" class="btn btn-ghost btn-xs">
+                                                    <i class="fas fa-exchange-alt"></i>
+                                                </label>
+                                                <ul tabindex="0" class="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-52">
+                                                    {% for role_value, role_name in role_choices %}
+                                                    <li>
+                                                        <a data-user-id="{{ user.id }}" 
+                                                           data-role="{{ role_value }}" 
+                                                           data-role-name="{{ role_name }}"
+                                                           class="role-change-btn text-sm {% if user.profile.role == role_value %}text-primary font-bold{% endif %} cursor-pointer">
+                                                            {% if role_value == 'member' %}👤{% elif role_value == 'admin' %}🛡️{% elif role_value == 'owner' %}👑{% endif %}
+                                                            {{ role_name }}
+                                                            {% if user.profile.role == role_value %}(現在){% endif %}
+                                                        </a>
+                                                    </li>
+                                                    {% endfor %}
+                                                </ul>
+                                            </div>
                                         </div>
                                         {% if user.email %}
                                         <div class="text-xs text-base-content/50">{{ user.email }}</div>
@@ -326,6 +352,79 @@ document.addEventListener('DOMContentLoaded', function() {
 function closeDeleteUserModal() {
     document.getElementById('deleteUserModal').classList.remove('modal-open');
     currentDeleteUserId = null;
+}
+
+// ロール変更機能
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.role-change-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const userId = this.dataset.userId;
+            const newRole = this.dataset.role;
+            const roleName = this.dataset.roleName;
+            
+            changeUserRole(userId, newRole, roleName);
+        });
+    });
+});
+
+function changeUserRole(userId, newRole, roleName) {
+    if (!confirm(`このユーザーのロールを「${roleName}」に変更しますか？`)) {
+        return;
+    }
+    
+    fetch(`/accounts/admin-change-role/${userId}/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: `role=${newRole}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // バッジを更新
+            const badge = document.getElementById(`role-badge-${userId}`);
+            badge.textContent = data.new_role_display;
+            badge.className = `badge ${data.new_role_class} badge-xs`;
+            
+            // 成功メッセージを表示
+            showNotification(data.message, 'success');
+            
+            // ドロップダウンを閉じる
+            document.activeElement.blur();
+            
+            // ページを少し待ってからリロード（UIの更新のため）
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showNotification('ロール変更に失敗しました: ' + data.error, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('ロール変更に失敗しました。', 'error');
+    });
+}
+
+// 通知表示機能
+function showNotification(message, type) {
+    const notification = document.createElement('div');
+    notification.className = `alert alert-${type === 'success' ? 'success' : 'error'} mb-4`;
+    notification.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${type === 'success' ? 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z' : 'M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z'}" />
+        </svg>
+        <span>${message}</span>
+    `;
+    
+    // ページの最上部に挿入
+    const container = document.querySelector('.container-fluid');
+    container.insertBefore(notification, container.firstChild);
+    
+    // 5秒後に削除
+    setTimeout(() => {
+        notification.remove();
+    }, 5000);
 }
 
 function showToast(message, type = 'info') {

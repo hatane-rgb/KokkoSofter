@@ -1,0 +1,200 @@
+{% extends 'base.html' %}
+
+{% block title %}ロール一括管理 - KokkoSofter{% endblock %}
+
+{% block content %}
+{% csrf_token %}
+<div class="container mx-auto px-4 py-8">
+    <div class="mb-8">
+        <div class="flex items-center space-x-4 mb-4">
+            <a href="{% url 'accounts:admin_dashboard' %}" class="btn btn-ghost btn-sm">
+                ← ダッシュボードに戻る
+            </a>
+        </div>
+        <h1 class="text-3xl font-bold text-base-content mb-2">🛡️ ロール一括管理</h1>
+        <p class="text-base-content/70">全ユーザーのロールを一括で管理できます</p>
+    </div>
+
+    <!-- メッセージ表示 -->
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-success mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>{{ message }}</span>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- ロール統計 -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        {% for role_value, role_name in role_choices %}
+        <div class="stat bg-base-100 rounded-lg shadow-lg">
+            <div class="stat-figure">
+                {% if role_value == 'member' %}👤
+                {% elif role_value == 'admin' %}🛡️
+                {% elif role_value == 'owner' %}👑
+                {% endif %}
+            </div>
+            <div class="stat-title">{{ role_name }}</div>
+            <div class="stat-value">
+                {% with count=users|length %}
+                    {% for user in users %}
+                        {% if user.profile.role == role_value %}
+                            {% if forloop.first %}1{% else %}{{ forloop.counter }}{% endif %}
+                        {% endif %}
+                    {% endfor %}
+                {% endwith %}
+            </div>
+            <div class="stat-desc">人のユーザー</div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- 一括変更フォーム -->
+    <form method="post" class="bg-base-100 rounded-lg shadow-lg p-6">
+        {% csrf_token %}
+        
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-xl font-bold">ユーザーロール設定</h2>
+            <div class="flex space-x-2">
+                <button type="button" id="select-all" class="btn btn-outline btn-sm">全選択</button>
+                <button type="button" id="deselect-all" class="btn btn-outline btn-sm">全解除</button>
+                <button type="submit" class="btn btn-primary">一括更新</button>
+            </div>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="table table-zebra w-full">
+                <thead>
+                    <tr>
+                        <th>
+                            <input type="checkbox" id="select-all-checkbox" class="checkbox">
+                        </th>
+                        <th>ユーザー</th>
+                        <th>現在のロール</th>
+                        <th>新しいロール</th>
+                        <th>登録日</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                    <tr class="hover">
+                        <td>
+                            <input type="checkbox" name="selected_users" value="{{ user.id }}" class="checkbox user-checkbox">
+                        </td>
+                        <td>
+                            <div class="flex items-center space-x-3">
+                                <div class="avatar">
+                                    <div class="w-10 rounded-full">
+                                        <img src="{{ user.profile.get_avatar_url }}" alt="{{ user.username }}">
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="font-bold">{{ user.username }}</div>
+                                    <div class="text-sm text-base-content/60">
+                                        {% if user.first_name or user.last_name %}
+                                            {{ user.first_name }} {{ user.last_name }}
+                                        {% else %}
+                                            名前未設定
+                                        {% endif %}
+                                    </div>
+                                    {% if user.email %}
+                                    <div class="text-xs text-base-content/50">{{ user.email }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="badge {{ user.profile.get_role_badge_class }} badge-sm">
+                                {{ user.profile.get_role_display_with_icon }}
+                            </span>
+                        </td>
+                        <td>
+                            <select name="role_{{ user.id }}" class="select select-bordered select-sm w-full max-w-xs">
+                                {% for role_value, role_name in role_choices %}
+                                <option value="{{ role_value }}" {% if user.profile.role == role_value %}selected{% endif %}>
+                                    {% if role_value == 'member' %}👤{% elif role_value == 'admin' %}🛡️{% elif role_value == 'owner' %}👑{% endif %}
+                                    {{ role_name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </td>
+                        <td>
+                            <span class="text-sm">{{ user.date_joined|date:"Y/m/d" }}</span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="mt-6 text-center">
+            <button type="submit" class="btn btn-primary btn-lg">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                </svg>
+                選択したユーザーのロールを更新
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const selectAllCheckbox = document.getElementById('select-all-checkbox');
+    const userCheckboxes = document.querySelectorAll('.user-checkbox');
+    const selectAllBtn = document.getElementById('select-all');
+    const deselectAllBtn = document.getElementById('deselect-all');
+
+    // 全選択チェックボックス
+    selectAllCheckbox.addEventListener('change', function() {
+        userCheckboxes.forEach(checkbox => {
+            checkbox.checked = this.checked;
+        });
+    });
+
+    // 個別チェックボックスの変更
+    userCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const checkedCount = document.querySelectorAll('.user-checkbox:checked').length;
+            selectAllCheckbox.checked = checkedCount === userCheckboxes.length;
+            selectAllCheckbox.indeterminate = checkedCount > 0 && checkedCount < userCheckboxes.length;
+        });
+    });
+
+    // 全選択ボタン
+    selectAllBtn.addEventListener('click', function() {
+        userCheckboxes.forEach(checkbox => {
+            checkbox.checked = true;
+        });
+        selectAllCheckbox.checked = true;
+        selectAllCheckbox.indeterminate = false;
+    });
+
+    // 全解除ボタン
+    deselectAllBtn.addEventListener('click', function() {
+        userCheckboxes.forEach(checkbox => {
+            checkbox.checked = false;
+        });
+        selectAllCheckbox.checked = false;
+        selectAllCheckbox.indeterminate = false;
+    });
+
+    // フォーム送信時の確認
+    document.querySelector('form').addEventListener('submit', function(e) {
+        const checkedCount = document.querySelectorAll('.user-checkbox:checked').length;
+        if (checkedCount === 0) {
+            e.preventDefault();
+            alert('更新するユーザーを選択してください。');
+            return;
+        }
+        
+        if (!confirm(`${checkedCount}人のユーザーロールを更新しますか？`)) {
+            e.preventDefault();
+        }
+    });
+});
+</script>
+{% endblock %}

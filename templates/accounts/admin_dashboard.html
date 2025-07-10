@@ -68,6 +68,16 @@
             </div>
         </a>
 
+        <a href="{% url 'accounts:admin_bulk_role_management' %}" class="card bg-base-100 shadow-lg hover:shadow-xl transition-shadow">
+            <div class="card-body">
+                <h3 class="card-title text-secondary">🛡️ ロール一括管理</h3>
+                <p>全ユーザーのロールを一括で設定</p>
+                <div class="card-actions justify-end">
+                    <button class="btn btn-secondary btn-sm">設定画面へ →</button>
+                </div>
+            </div>
+        </a>
+
         <a href="{% url 'admin:index' %}" target="_blank" class="card bg-base-100 shadow-lg hover:shadow-xl transition-shadow">
             <div class="card-body">
                 <h3 class="card-title text-warning">🔧 Django管理画面</h3>
