@@ -165,9 +165,31 @@ if [ "$ENVIRONMENT" = "production" ]; then
         if [ ! -d "$PROJECT_DIR" ]; then
             print_info "本番環境用プロジェクトディレクトリを作成中..."
             sudo mkdir -p "$PROJECT_DIR"
-            sudo cp -r "$CURRENT_DIR/"* "$PROJECT_DIR/"
+            
+            print_info "プロジェクトファイルをコピー中..."
+            print_info "コピー元: $CURRENT_DIR"
+            print_info "コピー先: $PROJECT_DIR"
+            
+            # 隠しファイルも含めてコピー
+            if sudo cp -r "$CURRENT_DIR/"* "$PROJECT_DIR/" && sudo cp -r "$CURRENT_DIR/".* "$PROJECT_DIR/" 2>/dev/null; then
+                print_success "✅ プロジェクトファイルのコピーが完了しました"
+            else
+                print_warning "⚠️ 一部のファイルコピーに失敗した可能性があります"
+            fi
+            
             sudo chown -R $(whoami):$(whoami) "$PROJECT_DIR"
-            print_success "✅ プロジェクトファイルを $PROJECT_DIR にコピーしました"
+            print_success "✅ ディレクトリの所有者を設定しました"
+            
+            # コピー後の確認
+            print_info "コピー後のファイル確認:"
+            ls -la "$PROJECT_DIR" | head -10
+            
+        else
+            print_info "既存の本番環境ディレクトリを使用します: $PROJECT_DIR"
+            
+            # 既存ディレクトリの内容確認
+            print_info "既存ディレクトリの内容:"
+            ls -la "$PROJECT_DIR" | head -10
         fi
     fi
 else
@@ -183,17 +205,41 @@ print_info "現在のディレクトリ: $(pwd)"
 
 # Git所有者問題の解決
 print_info "Git設定を確認中..."
+print_info "プロジェクトディレクトリ移動前: $(pwd)"
+
 cd "$PROJECT_DIR"
 print_info "プロジェクトディレクトリに移動しました: $(pwd)"
 
+# ディレクトリ移動の検証
+if [ "$(pwd)" != "$PROJECT_DIR" ]; then
+    print_error "❌ ディレクトリ移動に失敗しました"
+    print_error "期待: $PROJECT_DIR"
+    print_error "実際: $(pwd)"
+    exit 1
+fi
+
 # 必要なファイルの存在確認
 print_info "必要なファイルの存在確認中..."
+print_info "現在のディレクトリ: $(pwd)"
+print_info "ディレクトリ内のファイル一覧:"
+ls -la | head -20  # 最初の20行のみ表示
+
 REQUIRED_FILES=("manage.py")
 MISSING_FILES=()
 
 for file in "${REQUIRED_FILES[@]}"; do
-    if [ ! -f "$file" ]; then
+    print_info "ファイル '$file' をチェック中..."
+    if [ -f "$file" ]; then
+        print_success "✅ $file が見つかりました"
+        # ファイルの詳細情報も表示
+        ls -la "$file"
+    else
+        print_warning "⚠️ $file が見つかりません"
         MISSING_FILES+=("$file")
+        
+        # manage.pyの類似ファイルを検索
+        print_info "manage.py の類似ファイルを検索中..."
+        find . -maxdepth 2 -name "*manage*" -type f 2>/dev/null || print_info "類似ファイルが見つかりません"
     fi
 done
 
@@ -204,7 +250,21 @@ if [ ${#MISSING_FILES[@]} -gt 0 ]; then
     done
     print_error "現在のディレクトリ: $(pwd)"
     print_error "これはDjangoプロジェクトのルートディレクトリではない可能性があります"
+    
+    # より詳細なデバッグ情報
+    print_error "デバッグ情報:"
+    print_error "- PWD環境変数: $PWD"
+    print_error "- cd結果: $(pwd)"
+    print_error "- 実際のディレクトリ内容:"
+    ls -la . 2>/dev/null || print_error "ディレクトリの読み取りに失敗"
+    
+    # manage.pyを探す最後の試み
+    print_error "manage.pyを広範囲で検索中..."
+    find /var/www -name "manage.py" -type f 2>/dev/null | head -5 || print_error "manage.pyが見つかりません"
+    
     exit 1
+else
+    print_success "✅ 必要なファイルがすべて見つかりました"
 fi
 
 if [ -d ".git" ]; then
