@@ -153,10 +153,36 @@ print_info "仮想環境を有効化中..."
 source $VENV_DIR/bin/activate
 
 # 依存関係のインストール
-print_info "依存関係をインストール中..."
+print_info "Python依存関係をインストール中..."
 pip install --upgrade pip
 pip install -r requirements.txt
-print_success "依存関係のインストールが完了しました"
+print_success "Python依存関係のインストールが完了しました"
+
+# Node.js環境の確認とセットアップ
+print_info "Node.js環境を確認中..."
+if command -v node &> /dev/null; then
+    NODE_VERSION=$(node --version)
+    print_info "Node.js バージョン: $NODE_VERSION"
+    
+    # npm依存関係のインストール
+    print_info "TailwindCSS・DaisyUI依存関係をインストール中..."
+    npm install
+    print_success "Node.js依存関係のインストールが完了しました"
+    
+    # TailwindCSSのビルド
+    print_info "TailwindCSSをビルド中..."
+    if [ "$ENVIRONMENT" = "production" ]; then
+        npm run build-css-prod 2>/dev/null || print_warning "TailwindCSS本番ビルドに失敗（手動でnpm run build-css-prodを実行してください）"
+    else
+        npm run build-css-prod 2>/dev/null || print_warning "TailwindCSSビルドに失敗（手動でnpm run devを実行してください）"
+    fi
+    print_success "TailwindCSSビルドが完了しました"
+else
+    print_warning "Node.jsが見つかりません。TailwindCSS・DaisyUIは手動でセットアップしてください："
+    print_warning "  1. Node.js 18+をインストール"
+    print_warning "  2. npm install"
+    print_warning "  3. npm run build-css-prod"
+fi
 
 # 環境変数ファイルの確認と設定
 if [ ! -f ".env" ]; then

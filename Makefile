@@ -13,7 +13,15 @@ PROJECT_DIR := /var/www/kokkosofter
 help: ## ヘルプメッセージを表示
 	@echo "KokkoSofter 管理コマンド"
 	@echo "========================"
-	@echo "dev-setup        開発環境をセットアップ"
+	@echo "🚀 セットアップ・開発"
+	@echo "dev-setup        開発環境をセットアップ（Python+Node.js+CSS）"
+	@echo "install          依存関係をインストール"
+	@echo "npm-install      Node.js依存関係をインストール"
+	@echo "build-css        TailwindCSSをビルド（開発用・監視）"
+	@echo "build-css-prod   TailwindCSSをビルド（本番用・最適化）"
+	@echo "full-setup       完全セットアップ（依存関係+CSS+DB）"
+	@echo ""
+	@echo "🔧 開発・テスト"
 	@echo "run              開発サーバーを起動"
 	@echo "migrate          データベースマイグレーションを実行"
 	@echo "superuser        スーパーユーザーを作成"
@@ -25,6 +33,8 @@ help: ## ヘルプメッセージを表示
 	@echo "requirements     requirements.txtを更新"
 	@echo "backup-db        データベースをバックアップ"
 	@echo "git-init         Gitリポジトリを初期化"
+	@echo ""
+	@echo "🌐 本番環境・サービス管理"
 	@echo "service-status   systemdサービスの状態を確認"
 	@echo "service-logs     systemdサービスのログを表示"
 	@echo "service-restart  systemdサービスを再起動"
@@ -56,8 +66,35 @@ install: ## 依存関係をインストール
 	$(VENV_DIR)/bin/pip install -r $(PROJECT_DIR)/requirements.txt
 	@echo "インストール完了！"
 
+.PHONY: npm-install
+npm-install: ## Node.js依存関係をインストール
+	@echo "Node.js依存関係をインストール中..."
+	@if command -v npm >/dev/null 2>&1; then \
+		cd $(PROJECT_DIR) && npm install; \
+		echo "Node.js依存関係のインストール完了！"; \
+	else \
+		echo "❌ npmが見つかりません。Node.js 18+をインストールしてください"; \
+		exit 1; \
+	fi
+
+.PHONY: build-css
+build-css: npm-install ## TailwindCSSをビルド（開発用・監視）
+	@echo "TailwindCSSをビルド中（開発用・監視モード）..."
+	cd $(PROJECT_DIR) && npm run dev
+
+.PHONY: build-css-prod
+build-css-prod: npm-install ## TailwindCSSをビルド（本番用・最適化）
+	@echo "TailwindCSSをビルド中（本番用・最適化）..."
+	cd $(PROJECT_DIR) && npm run build
+
+.PHONY: full-setup
+full-setup: install npm-install build-css-prod ## 完全セットアップ（依存関係+CSS+DB）
+	@echo "完全セットアップを実行中..."
+	$(MAKE) dev-setup
+	@echo "完全セットアップ完了！"
+
 .PHONY: dev-setup
-dev-setup: install ## 開発環境をセットアップ
+dev-setup: install npm-install ## 開発環境をセットアップ
 	@echo "開発環境をセットアップ中..."
 	@if [ ! -f $(PROJECT_DIR)/.env ]; then \
 		echo ".envファイルを作成中..."; \
@@ -82,6 +119,8 @@ content = re.sub(r'^SECRET_KEY=.*$$', f'SECRET_KEY={new_key}', content, flags=re
 with open('.env', 'w') as f: f.write(content); \
 print('新しいSECRET_KEYが設定されました')"; \
 	fi
+	@echo "TailwindCSSをビルド中..."
+	cd $(PROJECT_DIR) && npm run build 2>/dev/null || echo "⚠️ TailwindCSSビルドに失敗（手動でnpm run buildを実行してください）"
 	cd $(PROJECT_DIR) && $(VENV_DIR)/bin/python manage.py makemigrations
 	cd $(PROJECT_DIR) && $(VENV_DIR)/bin/python manage.py migrate
 	cd $(PROJECT_DIR) && $(VENV_DIR)/bin/python manage.py collectstatic --noinput
