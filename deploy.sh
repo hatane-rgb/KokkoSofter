@@ -5,23 +5,7 @@
 
 set -e  # エラー時に停止
 
-# OS検出
-detect_os() {
-    if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "cygwin" || "$OSTYPE" == "win32" ]]; then
-        echo "windows"
-    elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
-        echo "linux"
-    elif [[ "$OSTYPE" == "darwin"* ]]; then
-        echo "macos"
-    else
-        echo "unknown"
-    fi
-}
-
-OS_TYPE=$(detect_os)
-print_info "検出されたOS: $OS_TYPE"
-
-# 色付きメッセージ用の関数
+# 色付きメッセージ用の関数（最初に定義）
 print_info() {
     echo -e "\033[34m[INFO]\033[0m $1"
 }
@@ -37,6 +21,22 @@ print_error() {
 print_warning() {
     echo -e "\033[33m[WARNING]\033[0m $1"
 }
+
+# OS検出
+detect_os() {
+    if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "cygwin" || "$OSTYPE" == "win32" ]]; then
+        echo "windows"
+    elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
+        echo "linux"
+    elif [[ "$OSTYPE" == "darwin"* ]]; then
+        echo "macos"
+    else
+        echo "unknown"
+    fi
+}
+
+OS_TYPE=$(detect_os)
+print_info "検出されたOS: $OS_TYPE"
 
 # ドメイン/IPアドレス設定用の関数
 configure_domain() {
@@ -203,7 +203,21 @@ fi
 # 依存関係のインストール
 print_info "Python依存関係をインストール中..."
 pip install --upgrade pip
-pip install -r requirements.txt
+
+# 環境とOSに応じたrequirementsファイルの選択
+if [ "$ENVIRONMENT" = "development" ] || [ "$OS_TYPE" = "windows" ]; then
+    if [ -f "requirements-dev.txt" ]; then
+        print_info "開発環境用依存関係（PostgreSQLなし）をインストール中..."
+        pip install -r requirements-dev.txt
+    else
+        print_warning "requirements-dev.txt が見つかりません。通常版を使用します。"
+        pip install -r requirements.txt
+    fi
+else
+    print_info "本番環境用依存関係をインストール中..."
+    pip install -r requirements.txt
+fi
+
 print_success "Python依存関係のインストールが完了しました"
 
 # Node.js環境の確認とセットアップ

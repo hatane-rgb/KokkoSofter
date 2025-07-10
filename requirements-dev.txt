@@ -1,0 +1,7 @@
+# 開発環境用の依存関係（PostgreSQLなし）
+Django==5.2.4
+Pillow==10.4.0
+python-decouple==3.8
+dj-database-url==2.1.0
+whitenoise==6.6.0
+requests==2.31.0
