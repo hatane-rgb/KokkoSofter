@@ -72,6 +72,12 @@ yarn.lock
 pnpm-lock.yaml
 .pnpm-debug.log*
 
+# TailwindCSS・DaisyUI 出力ファイル（ビルド時に生成されるため除外）
+static/css/daisyui.css
+static/css/tailwind-base.css
+static/css/tailwind-base-fixed.css
+static/css/output.css
+
 # Coverage reports
 htmlcov/
 .tox/
