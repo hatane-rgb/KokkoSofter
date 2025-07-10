@@ -191,12 +191,30 @@ export PATH="/usr/local/bin:$PATH"
 
 ### 仮想環境の問題
 ```bash
-# 仮想環境を削除して再作成
+# 仮想環境が作成されない場合
+# 1. venvモジュールの確認
+python3 -m venv --help
+
+# 2. venvモジュールのインストール（Linux）
+sudo apt install python3-venv     # Ubuntu/Debian
+sudo dnf install python3-venv     # CentOS/RHEL/Fedora
+
+# 3. 手動で仮想環境作成・削除・再作成
 rm -rf venv
 python3 -m venv venv
 
+# 4. 仮想環境の有効化確認
+# Linux/macOS
+source venv/bin/activate
+echo $VIRTUAL_ENV  # 仮想環境パスが表示されるはず
+
 # Windows
 venv\Scripts\activate
+echo $VIRTUAL_ENV  # 仮想環境パスが表示されるはず
+
+# 5. deploy.shの詳細ログで原因を確認
+./deploy.sh development  # エラーメッセージを確認
+```
 
 # Mac/Linux
 source venv/bin/activate
