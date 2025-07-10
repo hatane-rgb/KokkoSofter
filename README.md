@@ -124,7 +124,11 @@ venv\Scripts\activate
 source venv/bin/activate
 
 # Python依存関係をインストール
+# 本番環境（Linux/Unix）: requirements.txt（PostgreSQLサポートあり）
+# 開発環境（Windows等）: requirements-dev.txt（SQLiteのみ、PostgreSQLなし）
 pip install -r requirements.txt
+# または開発環境では：
+pip install -r requirements-dev.txt
 
 # Node.js依存関係をインストール（TailwindCSS・DaisyUI自動導入）
 npm install
