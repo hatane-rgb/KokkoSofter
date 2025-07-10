@@ -179,10 +179,33 @@ VENV_DIR="$PROJECT_DIR/venv"
 print_info "KokkoSofter デプロイを開始します..."
 print_info "環境: $ENVIRONMENT"
 print_info "プロジェクトディレクトリ: $PROJECT_DIR"
+print_info "現在のディレクトリ: $(pwd)"
 
 # Git所有者問題の解決
 print_info "Git設定を確認中..."
 cd "$PROJECT_DIR"
+print_info "プロジェクトディレクトリに移動しました: $(pwd)"
+
+# 必要なファイルの存在確認
+print_info "必要なファイルの存在確認中..."
+REQUIRED_FILES=("manage.py")
+MISSING_FILES=()
+
+for file in "${REQUIRED_FILES[@]}"; do
+    if [ ! -f "$file" ]; then
+        MISSING_FILES+=("$file")
+    fi
+done
+
+if [ ${#MISSING_FILES[@]} -gt 0 ]; then
+    print_error "❌ 必要なファイルが見つかりません:"
+    for file in "${MISSING_FILES[@]}"; do
+        print_error "  - $file"
+    done
+    print_error "現在のディレクトリ: $(pwd)"
+    print_error "これはDjangoプロジェクトのルートディレクトリではない可能性があります"
+    exit 1
+fi
 
 if [ -d ".git" ]; then
     # safe.directoryに追加してdubious ownership警告を解決
@@ -329,20 +352,57 @@ fi
 
 # 依存関係のインストール
 print_info "Python依存関係をインストール中..."
+print_info "現在のディレクトリ: $(pwd)"
+print_info "利用可能なrequirementsファイル:"
+ls -la requirements*.txt 2>/dev/null || print_warning "requirements*.txtファイルが見つかりません"
+
 pip install --upgrade pip
 
 # 環境とOSに応じたrequirementsファイルの選択
 if [ "$ENVIRONMENT" = "development" ] || [ "$OS_TYPE" = "windows" ]; then
     if [ -f "requirements-dev.txt" ]; then
         print_info "開発環境用依存関係（PostgreSQLなし）をインストール中..."
-        pip install -r requirements-dev.txt
+        if pip install -r requirements-dev.txt; then
+            print_success "✅ 開発環境用依存関係のインストールが完了しました"
+        else
+            print_error "❌ requirements-dev.txt からの依存関係インストールに失敗しました"
+            exit 1
+        fi
+    elif [ -f "requirements.txt" ]; then
+        print_warning "requirements-dev.txt が見つかりません。requirements.txt を使用します。"
+        if pip install -r requirements.txt; then
+            print_success "✅ 依存関係のインストールが完了しました"
+        else
+            print_error "❌ requirements.txt からの依存関係インストールに失敗しました"
+            exit 1
+        fi
     else
-        print_warning "requirements-dev.txt が見つかりません。通常版を使用します。"
-        pip install -r requirements.txt
+        print_error "❌ requirements-dev.txt も requirements.txt も見つかりません"
+        print_error "以下のファイルのいずれかが必要です:"
+        print_error "  - requirements-dev.txt (開発環境用)"
+        print_error "  - requirements.txt (本番環境用)"
+        print_error "現在のディレクトリ: $(pwd)"
+        print_error "ファイル一覧:"
+        ls -la *.txt 2>/dev/null || print_error "  txtファイルが見つかりません"
+        exit 1
     fi
 else
-    print_info "本番環境用依存関係をインストール中..."
-    pip install -r requirements.txt
+    if [ -f "requirements.txt" ]; then
+        print_info "本番環境用依存関係をインストール中..."
+        if pip install -r requirements.txt; then
+            print_success "✅ 本番環境用依存関係のインストールが完了しました"
+        else
+            print_error "❌ requirements.txt からの依存関係インストールに失敗しました"
+            exit 1
+        fi
+    else
+        print_error "❌ requirements.txt が見つかりません"
+        print_error "本番環境では requirements.txt が必要です"
+        print_error "現在のディレクトリ: $(pwd)"
+        print_error "ファイル一覧:"
+        ls -la *.txt 2>/dev/null || print_error "  txtファイルが見つかりません"
+        exit 1
+    fi
 fi
 
 print_success "Python依存関係のインストールが完了しました"
