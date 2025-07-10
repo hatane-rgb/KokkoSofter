@@ -62,13 +62,15 @@ ehthumbs.db
 Thumbs.db
 desktop.ini
 
-# Node modules (if using frontend build tools)
+# Node.js / npm (TailwindCSS・DaisyUIの本体ファイル除外)
 node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 package-lock.json
 yarn.lock
+pnpm-lock.yaml
+.pnpm-debug.log*
 
 # Coverage reports
 htmlcov/
