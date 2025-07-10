@@ -106,7 +106,14 @@ configure_domain() {
 
 # 環境変数の設定
 ENVIRONMENT=${1:-development}
-PROJECT_DIR="/var/www/kokkosofter"
+
+# 環境に応じてプロジェクトディレクトリを設定
+if [ "$ENVIRONMENT" = "production" ]; then
+    PROJECT_DIR="/var/www/kokkosofter"
+else
+    PROJECT_DIR="$(pwd)"  # 開発環境では現在のディレクトリを使用
+fi
+
 VENV_DIR="$PROJECT_DIR/venv"
 
 print_info "KokkoSofter デプロイを開始します..."
@@ -120,11 +127,18 @@ if [ -d "$PROJECT_DIR/.git" ]; then
     git config --global --add safe.directory $PROJECT_DIR 2>/dev/null || true
     print_success "✅ Git safe.directory設定を追加しました"
     
-    # 最新のコードを取得
-    print_info "最新のコードを取得中..."
+    # 本番環境でのみ最新のコードを取得
+    if [ "$ENVIRONMENT" = "production" ]; then
+        print_info "最新のコードを取得中..."
+        cd $PROJECT_DIR
+        git pull origin main
+        print_success "✅ 最新のコードを取得しました"
+    else
+        print_info "開発環境では現在のコードを使用します"
+        cd $PROJECT_DIR
+    fi
+else
     cd $PROJECT_DIR
-    git pull origin main
-    print_success "✅ 最新のコードを取得しました"
 fi
 
 # Python バージョンの確認
@@ -234,50 +248,57 @@ if [ "$ENVIRONMENT" = "production" ]; then
     configure_domain
 fi
 
-# 必要なディレクトリの作成
-print_info "必要なディレクトリを作成中..."
-sudo mkdir -p /var/log/kokkosofter /var/run/kokkosofter
-sudo chown -R www-data:www-data /var/log/kokkosofter /var/run/kokkosofter
-sudo chmod 755 /var/log/kokkosofter /var/run/kokkosofter
+# 必要なディレクトリの作成（本番環境のみ）
+if [ "$ENVIRONMENT" = "production" ]; then
+    print_info "必要なディレクトリを作成中..."
+    sudo mkdir -p /var/log/kokkosofter /var/run/kokkosofter
+    sudo chown -R www-data:www-data /var/log/kokkosofter /var/run/kokkosofter
+    sudo chmod 755 /var/log/kokkosofter /var/run/kokkosofter
 
-# プロジェクトディレクトリの所有者を設定
-sudo chown -R www-data:www-data $PROJECT_DIR
-sudo chmod -R 755 $PROJECT_DIR
+    # プロジェクトディレクトリの所有者を設定
+    sudo chown -R www-data:www-data $PROJECT_DIR
+    sudo chmod -R 755 $PROJECT_DIR
 
-# 静的ファイルとメディアファイルの権限を特別に設定
-print_info "静的ファイルとメディアファイルの権限を設定中..."
-sudo mkdir -p $PROJECT_DIR/static $PROJECT_DIR/media $PROJECT_DIR/staticfiles
-sudo mkdir -p $PROJECT_DIR/media/avatars $PROJECT_DIR/media/post_images
-sudo chown -R www-data:www-data $PROJECT_DIR/static $PROJECT_DIR/media $PROJECT_DIR/staticfiles
-sudo chmod -R 755 $PROJECT_DIR/static $PROJECT_DIR/media $PROJECT_DIR/staticfiles
+    # 静的ファイルとメディアファイルの権限を特別に設定
+    print_info "静的ファイルとメディアファイルの権限を設定中..."
+    sudo mkdir -p $PROJECT_DIR/static $PROJECT_DIR/media $PROJECT_DIR/staticfiles
+    sudo mkdir -p $PROJECT_DIR/media/avatars $PROJECT_DIR/media/post_images
+    sudo chown -R www-data:www-data $PROJECT_DIR/static $PROJECT_DIR/media $PROJECT_DIR/staticfiles
+    sudo chmod -R 755 $PROJECT_DIR/static $PROJECT_DIR/media $PROJECT_DIR/staticfiles
 
-# メディアファイル内のファイルに読み取り権限を付与
-sudo find $PROJECT_DIR/media -type f -exec chmod 644 {} \; 2>/dev/null || true
-sudo find $PROJECT_DIR/media -type d -exec chmod 755 {} \; 2>/dev/null || true
+    # メディアファイル内のファイルに読み取り権限を付与
+    sudo find $PROJECT_DIR/media -type f -exec chmod 644 {} \; 2>/dev/null || true
+    sudo find $PROJECT_DIR/media -type d -exec chmod 755 {} \; 2>/dev/null || true
 
-# シンボリックリンク作成（Nginxが直接アクセスできない場合の対策）
-print_info "メディアディレクトリのシンボリックリンクを確認..."
-if [ ! -L "/var/www/html/media" ]; then
-    sudo ln -sf $PROJECT_DIR/media /var/www/html/media
-    print_success "✅ メディアディレクトリのシンボリックリンクを作成しました"
-fi
+    # シンボリックリンク作成（Nginxが直接アクセスできない場合の対策）
+    print_info "メディアディレクトリのシンボリックリンクを確認..."
+    if [ ! -L "/var/www/html/media" ]; then
+        sudo ln -sf $PROJECT_DIR/media /var/www/html/media
+        print_success "✅ メディアディレクトリのシンボリックリンクを作成しました"
+    fi
 
-print_success "✅ 静的ファイルとメディアファイルの権限を設定しました"
+    print_success "✅ 静的ファイルとメディアファイルの権限を設定しました"
 
-# データベースファイルの権限を特別に設定
-print_info "データベースファイルの権限を設定中..."
-if [ -f "$PROJECT_DIR/db.sqlite3" ]; then
-    sudo chown www-data:www-data $PROJECT_DIR/db.sqlite3
-    sudo chmod 664 $PROJECT_DIR/db.sqlite3
-    print_success "✅ データベースファイルの権限を設定しました"
+    # データベースファイルの権限を特別に設定
+    print_info "データベースファイルの権限を設定中..."
+    if [ -f "$PROJECT_DIR/db.sqlite3" ]; then
+        sudo chown www-data:www-data $PROJECT_DIR/db.sqlite3
+        sudo chmod 664 $PROJECT_DIR/db.sqlite3
+        print_success "✅ データベースファイルの権限を設定しました"
+    else
+        print_warning "⚠️ データベースファイルが見つかりません（マイグレーション後に作成されます）"
+    fi
+
+    # プロジェクトディレクトリ自体の書き込み権限を確保（SQLite用）
+    sudo chmod 775 $PROJECT_DIR
+
+    print_success "ディレクトリとファイル権限の設定が完了しました"
 else
-    print_warning "⚠️ データベースファイルが見つかりません（マイグレーション後に作成されます）"
+    print_info "開発環境では権限設定をスキップします"
+    # 開発環境用のディレクトリ作成
+    mkdir -p $PROJECT_DIR/static $PROJECT_DIR/media $PROJECT_DIR/staticfiles
+    mkdir -p $PROJECT_DIR/media/avatars $PROJECT_DIR/media/post_images
 fi
-
-# プロジェクトディレクトリ自体の書き込み権限を確保（SQLite用）
-sudo chmod 775 $PROJECT_DIR
-
-print_success "ディレクトリとファイル権限の設定が完了しました"
 
 # Django プロジェクトディレクトリに移動（すでにPROJECT_DIRにいるので不要）
 # cd KokkoSofter
@@ -288,12 +309,14 @@ python manage.py makemigrations
 python manage.py migrate
 print_success "データベースマイグレーションが完了しました"
 
-# マイグレーション後にデータベースファイルの権限を再設定
-print_info "マイグレーション後のデータベース権限を設定中..."
-if [ -f "$PROJECT_DIR/db.sqlite3" ]; then
-    sudo chown www-data:www-data $PROJECT_DIR/db.sqlite3
-    sudo chmod 664 $PROJECT_DIR/db.sqlite3
-    print_success "✅ データベースファイルの権限を再設定しました"
+# マイグレーション後にデータベースファイルの権限を再設定（本番環境のみ）
+if [ "$ENVIRONMENT" = "production" ]; then
+    print_info "マイグレーション後のデータベース権限を設定中..."
+    if [ -f "$PROJECT_DIR/db.sqlite3" ]; then
+        sudo chown www-data:www-data $PROJECT_DIR/db.sqlite3
+        sudo chmod 664 $PROJECT_DIR/db.sqlite3
+        print_success "✅ データベースファイルの権限を再設定しました"
+    fi
 fi
 
 # 静的ファイルの収集
