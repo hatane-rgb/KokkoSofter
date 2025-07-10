@@ -5,14 +5,21 @@
   "scripts": {
     "build-css": "tailwindcss -i ./static/css/input.css -o ./static/css/output.css --watch",
     "build-css-prod": "tailwindcss -i ./static/css/input.css -o ./static/css/output.css --minify",
+    "setup": "npx tailwindcss init -p",
+    "dev": "npm run build-css",
+    "build": "npm run build-css-prod",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": "",
+  "keywords": ["django", "tailwindcss", "daisyui", "social-platform"],
+  "author": "KokkoSofter Team",
+  "license": "MIT",
+  "description": "モダンでスタイリッシュなチーム向けソーシャル投稿プラットフォーム",
   "dependencies": {
     "daisyui": "^5.0.46",
     "tailwindcss": "^4.1.11"
+  },
+  "devDependencies": {
+    "@tailwindcss/forms": "^0.5.7",
+    "@tailwindcss/typography": "^0.5.10"
   }
 }
