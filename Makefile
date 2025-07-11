@@ -6,6 +6,15 @@ PIP := pip3
 VENV_DIR := /var/www/kokkosofter/venv
 PROJECT_DIR := /var/www/kokkosofter
 
+# OS検出（Windows対応）
+ifeq ($(OS),Windows_NT)
+    PYTHON := python
+    PIP := pip
+    VENV_DIR := venv
+    PROJECT_DIR := .
+    POWERSHELL := powershell
+endif
+
 # 色付きヘルプメッセージ（Windows対応）
 .DEFAULT_GOAL := help
 
@@ -547,3 +556,30 @@ check-media: ## メディアファイルの設定を確認
 	@echo ""
 	@echo "📊 メディアファイル数:"
 	@find $(PROJECT_DIR)/media -type f | wc -l
+
+.PHONY: windows-setup
+windows-setup: ## Windows環境向け自動セットアップ（PowerShell）
+ifeq ($(OS),Windows_NT)
+	@echo "Windows環境でPowerShellセットアップを実行中..."
+	@if exist deploy.ps1 ( \
+		powershell -ExecutionPolicy Bypass -File deploy.ps1 development \
+	) else ( \
+		echo "❌ deploy.ps1が見つかりません" \
+	)
+else
+	@echo "❌ この機能はWindows専用です。Linux/macOSでは 'make full-setup' を使用してください"
+endif
+
+.PHONY: powershell-deploy
+powershell-deploy: ## PowerShellデプロイスクリプトを実行（引数: env=development|production）
+ifeq ($(OS),Windows_NT)
+	@echo "PowerShellデプロイスクリプトを実行中..."
+	@set env=$(if $(env),$(env),development) && \
+	if exist deploy.ps1 ( \
+		powershell -ExecutionPolicy Bypass -File deploy.ps1 $(env) \
+	) else ( \
+		echo "❌ deploy.ps1が見つかりません" \
+	)
+else
+	@echo "❌ この機能はWindows専用です"
+endif

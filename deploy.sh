@@ -49,19 +49,40 @@ troubleshoot_venv() {
 
 # OS検出
 detect_os() {
+    # より詳細なOS検出
     if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "cygwin" || "$OSTYPE" == "win32" ]]; then
+        echo "windows"
+    elif [[ "$OS" == "Windows_NT" ]]; then
         echo "windows"
     elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
         echo "linux"
     elif [[ "$OSTYPE" == "darwin"* ]]; then
         echo "macos"
     else
-        echo "unknown"
+        # 追加の検出ロジック
+        if [[ -f "/proc/version" ]]; then
+            if grep -q "Microsoft\|WSL" /proc/version 2>/dev/null; then
+                echo "wsl"
+            else
+                echo "linux"
+            fi
+        elif [[ "$TERM_PROGRAM" == "vscode" ]]; then
+            # VS Code統合ターミナルの場合、環境変数をチェック
+            if [[ -n "$PROCESSOR_IDENTIFIER" ]]; then
+                echo "windows"
+            else
+                echo "unknown"
+            fi
+        else
+            echo "unknown"
+        fi
     fi
 }
 
 OS_TYPE=$(detect_os)
 print_info "検出されたOS: $OS_TYPE"
+print_info "OSTYPE: $OSTYPE"
+print_info "OS環境変数: $OS"
 
 # ドメイン/IPアドレス設定用の関数
 configure_domain() {
@@ -229,17 +250,30 @@ MISSING_FILES=()
 
 for file in "${REQUIRED_FILES[@]}"; do
     print_info "ファイル '$file' をチェック中..."
+    
+    # より詳細なファイル存在チェック
     if [ -f "$file" ]; then
         print_success "✅ $file が見つかりました"
         # ファイルの詳細情報も表示
-        ls -la "$file"
+        ls -la "$file" 2>/dev/null || stat "$file" 2>/dev/null || echo "ファイル情報の取得に失敗"
+    elif [ -e "$file" ]; then
+        print_warning "⚠️ $file は存在しますが、通常ファイルではありません"
+        ls -la "$file" 2>/dev/null || stat "$file" 2>/dev/null || echo "ファイル情報の取得に失敗"
     else
         print_warning "⚠️ $file が見つかりません"
         MISSING_FILES+=("$file")
         
-        # manage.pyの類似ファイルを検索
-        print_info "manage.py の類似ファイルを検索中..."
-        find . -maxdepth 2 -name "*manage*" -type f 2>/dev/null || print_info "類似ファイルが見つかりません"
+        # より詳細なファイル検索
+        print_info "$file の類似ファイルを検索中..."
+        find . -maxdepth 2 -name "*${file%.*}*" -type f 2>/dev/null || print_info "類似ファイルが見つかりません"
+        
+        # Windows環境での代替チェック
+        if [ "$OS_TYPE" = "windows" ]; then
+            print_info "Windows環境での代替チェック..."
+            if command -v ls.exe >/dev/null 2>&1; then
+                ls.exe -la "$file" 2>/dev/null && print_info "ls.exeで検出されました" || print_info "ls.exeでも見つかりません"
+            fi
+        fi
     fi
 done
 
@@ -261,6 +295,34 @@ if [ ${#MISSING_FILES[@]} -gt 0 ]; then
     # manage.pyを探す最後の試み
     print_error "manage.pyを広範囲で検索中..."
     find /var/www -name "manage.py" -type f 2>/dev/null | head -5 || print_error "manage.pyが見つかりません"
+    
+    # 本番環境の場合は、元のディレクトリを確認
+    if [ "$ENVIRONMENT" = "production" ] && [ "$OS_TYPE" != "windows" ]; then
+        print_warning "本番環境でファイルが見つかりません。元のディレクトリを確認します..."
+        print_info "元のディレクトリ: $CURRENT_DIR"
+        
+        if [ -f "$CURRENT_DIR/manage.py" ]; then
+            print_warning "⚠️ 元のディレクトリにmanage.pyが存在します。再コピーを試行します..."
+            
+            # 既存のディレクトリを削除して再作成
+            sudo rm -rf "$PROJECT_DIR"
+            sudo mkdir -p "$PROJECT_DIR"
+            
+            # ファイルコピーを再実行
+            print_info "プロジェクトファイルを再コピー中..."
+            cd "$CURRENT_DIR"
+            sudo cp -r ./* "$PROJECT_DIR/"
+            sudo cp -r ./.[^.]* "$PROJECT_DIR/" 2>/dev/null || true
+            sudo chown -R $(whoami):$(whoami) "$PROJECT_DIR"
+            
+            # 再度プロジェクトディレクトリに移動して確認
+            cd "$PROJECT_DIR"
+            if [ -f "manage.py" ]; then
+                print_success "✅ 再コピー後にmanage.pyが見つかりました"
+                return 0  # エラーを回避して続行
+            fi
+        fi
+    fi
     
     exit 1
 else

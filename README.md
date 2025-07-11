@@ -45,6 +45,15 @@ winget install Git.Git
 choco install python nodejs git
 ```
 
+**Windows PowerShellでの注意事項:**
+```powershell
+# PowerShellの実行ポリシーを一時的に変更（管理者権限で実行）
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+
+# または、スクリプト実行時にバイパス
+PowerShell -ExecutionPolicy Bypass -File .\deploy.ps1
+```
+
 #### Ubuntu/Debian
 ```bash
 # システムの更新
@@ -87,7 +96,30 @@ sudo port install python312 nodejs18 git
 
 ### 🎯 自動セットアップ（推奨）
 
-#### 開発環境
+#### Windows（PowerShell）
+```powershell
+# リポジトリをクローン
+git clone https://github.com/hatane-rgb/KokkoSofter.git
+cd KokkoSofter
+
+# PowerShell自動セットアップ（推奨）
+.\deploy.ps1 development
+
+# またはMakeを使用（make利用可能な場合）
+make full-setup
+
+# 開発サーバーを起動
+make run
+```
+
+**Bashを使用したい場合（Git Bash/WSL）:**
+```bash
+# Git BashまたはWSLでの実行
+chmod +x deploy.sh
+./deploy.sh development
+```
+
+#### Linux/macOS（開発環境）
 ```bash
 # リポジトリをクローン
 git clone https://github.com/hatane-rgb/KokkoSofter.git
