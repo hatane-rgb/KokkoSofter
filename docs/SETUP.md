@@ -1,53 +1,443 @@
 # 🛠️ セットアップガイド
 
-KokkoSofterの詳細なセットアップ手順です。
+KokkoSofterのWindows・Linux環境での詳細なセットアップ手順です。
 
-## 📋 前提条件
+## 📋 目次
+
+- [前提条件・必要環境](#前提条件必要環境)
+- [Windows セットアップ](#windows-セットアップ)
+- [Linux セットアップ](#linux-セットアップ)
+- [macOS セットアップ](#macos-セットアップ)
+- [開発環境セットアップ](#開発環境セットアップ)
+- [本番環境セットアップ](#本番環境セットアップ)
+- [検証・テスト](#検証テスト)
+
+## 前提条件・必要環境
 
 ### 必須要件
-- **Python**: 3.8以上（推奨: 3.11+）
-- **Node.js**: 18.0以上（推奨: 20.0+）
-- **Git**: 最新版
-- **データベース**: SQLite（開発）/ PostgreSQL（本番）
+| 項目 | 開発環境 | 本番環境 | 備考 |
+|------|----------|----------|------|
+| **Python** | 3.8+ | 3.9+ | 推奨: 3.11+ |
+| **Node.js** | 18.0+ | 20.0+ | TailwindCSS用 |
+| **Git** | 最新版 | 最新版 | バージョン管理 |
+| **データベース** | SQLite | PostgreSQL | 開発: SQLite可 |
+| **Webサーバー** | Django dev | Nginx + Gunicorn | 本番環境必須 |
 
-### 推奨環境
+### 推奨システム要件
 - **OS**: Windows 10+, macOS 12+, Ubuntu 20.04+
-- **メモリ**: 4GB以上
-- **ストレージ**: 1GB以上の空き容量
+- **メモリ**: 4GB以上（本番: 8GB+）
+- **ストレージ**: 2GB以上の空き容量
 - **ブラウザ**: Chrome 90+, Firefox 88+, Safari 14+
 
-## 🚀 インストール手順
+### ネットワーク要件
+- **インターネット接続**: パッケージダウンロード用
+- **ポート**: 8000（開発）, 80/443（本番）
+- **プロキシ**: 企業環境では設定が必要な場合があります
 
-### 1. リポジトリの準備
+## Windows セットアップ
 
-```bash
+### 1. 必要なアプリケーションのインストール
+
+#### Python のインストール
+```powershell
+# Microsoft Store 経由（推奨）
+winget install Python.Python.3.12
+
+# または python.org から直接インストール
+# https://www.python.org/downloads/windows/
+
+# インストール確認
+python --version
+pip --version
+```
+
+#### Node.js のインストール
+```powershell
+# winget 経由
+winget install OpenJS.NodeJS
+
+# または Node.js 公式サイトから
+# https://nodejs.org/
+
+# インストール確認
+node --version
+npm --version
+```
+
+#### Git のインストール
+```powershell
+# winget 経由
+winget install Git.Git
+
+# または Git for Windows から
+# https://gitforwindows.org/
+
+# インストール確認
+git --version
+```
+
+#### Chocolatey を使用する場合
+```powershell
+# Chocolatey のインストール（管理者権限）
+Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
+
+# 必要なアプリケーションをまとめてインストール
+choco install python nodejs git -y
+```
+
+### 2. PowerShell実行ポリシーの設定
+```powershell
+# 管理者権限でPowerShellを開いて実行
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+
+# または個別実行時にバイパス
+PowerShell -ExecutionPolicy Bypass -File .\deploy.ps1 development
+```
+
+### 3. プロジェクトのクローン・セットアップ
+```powershell
 # リポジトリをクローン
 git clone https://github.com/hatane-rgb/KokkoSofter.git
-cd KokkoSofter/KokkoSofter
+cd KokkoSofter
 
-# ブランチ確認
-git branch -a
-git checkout main
-```
+# 自動セットアップ（推奨）
+.\deploy.ps1 development
 
-### 2. Python環境の構築
-
-#### 仮想環境の作成
-```bash
-# Windows
+# 手動セットアップの場合
 python -m venv venv
 venv\Scripts\activate
-
-# macOS/Linux
-python3 -m venv venv
-source venv/bin/activate
-
-# 仮想環境の確認
-which python  # macOS/Linux
-where python   # Windows
+pip install -r requirements-dev.txt
+npm install
+npm run build
+python manage.py migrate
+python manage.py createsuperuser
 ```
 
-#### Pythonパッケージのインストール
+### 4. 開発サーバーの起動
+```powershell
+# 仮想環境を有効化
+venv\Scripts\activate
+
+# 開発サーバー起動
+python manage.py runserver
+
+# ブラウザでアクセス
+# http://127.0.0.1:8000/
+```
+
+## Linux セットアップ
+
+### Ubuntu/Debian
+
+#### 1. システムの更新・必要パッケージのインストール
+```bash
+# システム更新
+sudo apt update && sudo apt upgrade -y
+
+# Python 3.8+ とpip
+sudo apt install python3 python3-pip python3-venv -y
+
+# 追加の開発ツール
+sudo apt install build-essential curl wget software-properties-common -y
+
+# Git
+sudo apt install git -y
+```
+
+#### 2. Node.js のインストール（NodeSource リポジトリ）
+```bash
+# NodeSource リポジトリ追加（Node.js 20.x）
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+
+# Node.js インストール
+sudo apt-get install -y nodejs
+
+# インストール確認
+node --version
+npm --version
+```
+
+#### 3. プロジェクトセットアップ
+```bash
+# リポジトリクローン
+git clone https://github.com/hatane-rgb/KokkoSofter.git
+cd KokkoSofter
+
+# 自動セットアップ（推奨）
+make full-setup
+
+# 開発サーバー起動
+make run
+```
+
+### CentOS/RHEL/Fedora
+
+#### 1. 必要パッケージのインストール
+```bash
+# Python 3.8+ とpip
+sudo dnf install python3 python3-pip python3-venv -y
+
+# 開発ツール
+sudo dnf groupinstall "Development Tools" -y
+sudo dnf install curl wget -y
+
+# Node.js 18+
+sudo dnf install nodejs npm -y
+
+# Git
+sudo dnf install git -y
+```
+
+#### 2. プロジェクトセットアップ
+```bash
+# リポジトリクローン
+git clone https://github.com/hatane-rgb/KokkoSofter.git
+cd KokkoSofter
+
+# セットアップ
+make full-setup
+make run
+```
+
+## macOS セットアップ
+
+### 1. Homebrew のインストール（未インストールの場合）
+```bash
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+```
+
+### 2. 必要なアプリケーションのインストール
+```bash
+# Python, Node.js, Git
+brew install python@3.12 node git
+
+# インストール確認
+python3 --version
+node --version
+git --version
+```
+
+### 3. プロジェクトセットアップ
+```bash
+# リポジトリクローン
+git clone https://github.com/hatane-rgb/KokkoSofter.git
+cd KokkoSofter
+
+# セットアップ
+make full-setup
+make run
+```
+
+## 開発環境セットアップ
+
+### 手動セットアップ手順
+
+#### 1. Python仮想環境の作成
+```bash
+# 仮想環境作成
+python -m venv venv
+
+# 仮想環境有効化
+# Windows
+venv\Scripts\activate
+# Linux/macOS
+source venv/bin/activate
+
+# pip アップグレード
+python -m pip install --upgrade pip
+```
+
+#### 2. Python依存関係のインストール
+```bash
+# 開発環境用（SQLiteのみ）
+pip install -r requirements-dev.txt
+
+# 本番環境用（PostgreSQL対応）
+pip install -r requirements.txt
+
+# インストール確認
+pip list
+```
+
+#### 3. Node.js依存関係・CSS構築
+```bash
+# Node.js パッケージインストール
+npm install
+
+# TailwindCSS ビルド
+npm run build
+
+# 開発時の監視モード
+npm run dev
+```
+
+#### 4. データベース設定
+```bash
+# マイグレーション実行
+python manage.py makemigrations
+python manage.py migrate
+
+# スーパーユーザー作成
+python manage.py createsuperuser
+
+# 静的ファイル収集
+python manage.py collectstatic --noinput
+```
+
+#### 5. 設定ファイルの確認
+```bash
+# .env ファイルの作成（.env.example をコピー）
+cp .env.example .env
+
+# SECRET_KEY の生成（自動で設定される場合もあります）
+python manage.py shell -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
+```
+
+### 環境変数設定（.env ファイル）
+
+```bash
+# 開発環境の例
+DEBUG=True
+SECRET_KEY=your-generated-secret-key
+ALLOWED_HOSTS=localhost,127.0.0.1
+DATABASE_URL=sqlite:///db.sqlite3
+CSRF_TRUSTED_ORIGINS=http://localhost:8000,http://127.0.0.1:8000
+```
+
+## 本番環境セットアップ
+
+### Linux（Ubuntu）本番環境
+
+#### 1. 自動デプロイ（推奨）
+```bash
+# リポジトリクローン
+git clone https://github.com/hatane-rgb/KokkoSofter.git
+cd KokkoSofter
+
+# 実行権限付与
+chmod +x deploy.sh
+
+# 本番環境自動デプロイ
+./deploy.sh production
+```
+
+#### 2. PostgreSQL のセットアップ
+```bash
+# PostgreSQL インストール
+sudo apt install postgresql postgresql-contrib -y
+
+# データベース・ユーザー作成
+sudo -u postgres psql
+
+# PostgreSQL 内で実行
+CREATE DATABASE kokkosofter;
+CREATE USER kokkosofter WITH ENCRYPTED PASSWORD 'your-secure-password';
+GRANT ALL PRIVILEGES ON DATABASE kokkosofter TO kokkosofter;
+\q
+```
+
+#### 3. Nginx 設定
+```bash
+# Nginx インストール
+sudo apt install nginx -y
+
+# 設定適用
+make nginx-setup
+
+# Nginx 開始・有効化
+sudo systemctl start nginx
+sudo systemctl enable nginx
+```
+
+#### 4. Systemd サービス設定
+```bash
+# systemd サービス設定コピー
+sudo cp kokkosofter.service /etc/systemd/system/
+
+# サービス有効化・開始
+sudo systemctl daemon-reload
+sudo systemctl enable kokkosofter
+sudo systemctl start kokkosofter
+
+# ステータス確認
+make service-status
+```
+
+#### 5. SSL証明書設定（Let's Encrypt）
+```bash
+# Certbot インストール
+sudo apt install certbot python3-certbot-nginx -y
+
+# SSL証明書取得
+sudo certbot --nginx -d your-domain.com
+
+# 自動更新テスト
+sudo certbot renew --dry-run
+```
+
+### ドメイン設定
+```bash
+# ドメイン設定の対話式設定
+make configure-domain
+
+# または一括設定
+make quick-domain-setup
+```
+
+## 検証・テスト
+
+### 開発環境の確認
+```bash
+# Django システムチェック
+python manage.py check
+
+# テスト実行
+python manage.py test
+
+# 開発サーバー起動
+python manage.py runserver 0.0.0.0:8000
+```
+
+### 本番環境の確認
+```bash
+# Django デプロイチェック
+python manage.py check --deploy
+
+# サービス状態確認
+make service-status
+
+# Nginx 設定テスト
+make nginx-test
+
+# ログ確認
+make service-logs
+```
+
+### アクセステスト
+- **開発環境**: http://127.0.0.1:8000/
+- **本番環境**: http://your-domain.com/
+- **管理画面**: /admin/
+
+## トラブルシューティング
+
+一般的な問題は [トラブルシューティングガイド](TROUBLESHOOTING.md) を参照してください。
+
+### よくある問題
+1. **権限エラー**: `make fix-permissions`
+2. **CSRF エラー**: `make fix-csrf`
+3. **静的ファイル問題**: `make fix-media`
+4. **サービス起動失敗**: `make service-logs`
+
+## 次のステップ
+
+セットアップ完了後:
+1. [機能一覧](FEATURES.md) でアプリケーション機能を確認
+2. [開発ガイド](DEVELOPMENT.md) で開発手順を学習
+3. [UI/UXガイド](UI_GUIDE.md) でカスタマイズ方法を確認
+
+---
+
+**🔧 詳細な問題解決は [トラブルシューティング](TROUBLESHOOTING.md) を参照してください。**
 ```bash
 # pip を最新版に更新
 python -m pip install --upgrade pip
