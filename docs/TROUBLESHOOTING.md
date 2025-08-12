@@ -100,6 +100,49 @@ chmod +x deploy.sh
 ./deploy.sh production
 ```
 
+### 📄 ログファイル権限エラー
+
+**症状**: `PermissionError: [Errno 13] Permission denied: '/var/log/kokkosofter/django.log'`
+
+**原因**: Djangoがログファイルに書き込み権限を持っていない
+
+**解決方法**:
+
+#### 自動修正（推奨）
+```bash
+cd /var/www/kokkosofter
+make fix-permissions
+```
+
+#### 手動修正
+```bash
+# ログディレクトリの作成・権限設定
+sudo mkdir -p /var/log/kokkosofter
+sudo chown -R www-data:www-data /var/log/kokkosofter
+sudo chmod -R 755 /var/log/kokkosofter
+
+# プロジェクトディレクトリの権限設定
+sudo chown -R www-data:www-data /var/www/kokkosofter
+sudo chmod -R 755 /var/www/kokkosofter
+
+# ユーザーをwww-dataグループに追加
+sudo usermod -a -G www-data $(whoami)
+
+# セッションを更新（ログアウト・ログインまたは）
+newgrp www-data
+```
+
+#### 一時的な解決（開発環境）
+```bash
+# ログディレクトリに書き込み権限を付与
+sudo chmod 777 /var/log/kokkosofter
+
+# またはプロジェクトディレクトリにログファイルを作成
+mkdir -p logs
+touch logs/django.log
+chmod 666 logs/django.log
+```
+
 ## インストール・セットアップの問題
 
 ### 🐍 Python not found / Python が見つからない

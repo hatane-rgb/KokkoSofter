@@ -47,6 +47,7 @@ help: ## ヘルプメッセージを表示
 	@echo "service-status   systemdサービスの状態を確認"
 	@echo "service-logs     systemdサービスのログを表示"
 	@echo "service-restart  systemdサービスを再起動"
+	@echo "fix-permissions  本番環境の権限を修正"
 	@echo "debug-gunicorn   デバッグモードでGunicornを起動"
 	@echo "test-django      Django設定をテスト"
 	@echo "generate-secret-key Django用のSECRET_KEYを生成"
@@ -220,6 +221,16 @@ git-init: ## Gitリポジトリを初期化
 service-status: ## systemdサービスの状態を確認
 	@echo "KokkoSofterサービスの状態を確認中..."
 	@sudo systemctl status kokkosofter.service
+
+.PHONY: fix-permissions
+fix-permissions: ## 本番環境の権限を修正
+	@echo "🔧 本番環境の権限を修正中..."
+	@sudo mkdir -p /var/log/kokkosofter
+	@sudo chown -R www-data:www-data /var/log/kokkosofter
+	@sudo chmod -R 755 /var/log/kokkosofter
+	@sudo chown -R www-data:www-data /var/www/kokkosofter
+	@sudo chmod -R 755 /var/www/kokkosofter
+	@echo "✅ 権限修正完了！"
 
 .PHONY: service-logs
 service-logs: ## systemdサービスのログを表示

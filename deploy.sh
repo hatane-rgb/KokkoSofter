@@ -547,6 +547,27 @@ fi
 
 print_success "Python依存関係のインストールが完了しました"
 
+# 本番環境では早期に権限設定を行う
+if [ "$ENVIRONMENT" = "production" ] && [ "$OS_TYPE" != "windows" ]; then
+    print_info "必要なディレクトリを作成中..."
+    sudo mkdir -p /var/log/kokkosofter /var/run/kokkosofter
+    sudo chown -R www-data:www-data /var/log/kokkosofter /var/run/kokkosofter
+    sudo chmod 755 /var/log/kokkosofter /var/run/kokkosofter
+
+    # プロジェクトディレクトリの所有者を設定
+    print_info "プロジェクトディレクトリの権限を設定中..."
+    sudo chown -R www-data:www-data $PROJECT_DIR
+    sudo chmod -R 755 $PROJECT_DIR
+
+    # 静的ファイルとメディアファイルの権限を事前設定
+    sudo mkdir -p $PROJECT_DIR/static $PROJECT_DIR/media $PROJECT_DIR/staticfiles
+    sudo mkdir -p $PROJECT_DIR/media/avatars $PROJECT_DIR/media/post_images
+    sudo chown -R www-data:www-data $PROJECT_DIR/static $PROJECT_DIR/media $PROJECT_DIR/staticfiles
+    sudo chmod -R 755 $PROJECT_DIR/static $PROJECT_DIR/media $PROJECT_DIR/staticfiles
+    
+    print_success "✅ 権限設定が完了しました"
+fi
+
 # Node.js環境の確認とセットアップ
 print_info "Node.js環境を確認中..."
 if command -v node &> /dev/null; then
