@@ -39,7 +39,7 @@ python venv\Scripts\activate
 python manage.py runserver
 ```
 
-#### Linux/macOS
+#### Linux/macOS（開発環境）
 ```bash
 # 1. リポジトリをクローン
 git clone https://github.com/hatane-rgb/KokkoSofter.git
@@ -50,6 +50,21 @@ make full-setup
 
 # 3. 開発サーバーを起動
 make run
+```
+
+#### Linux 本番環境デプロイ
+```bash
+# 新規デプロイの場合
+git clone https://github.com/hatane-rgb/KokkoSofter.git
+cd KokkoSofter
+chmod +x deploy.sh
+./deploy.sh production
+
+# 既存環境を更新する場合
+cd /var/www/kokkosofter
+git reset --hard HEAD && git pull origin main
+chmod +x deploy.sh
+./deploy.sh production
 ```
 
 ### アクセス

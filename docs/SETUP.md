@@ -308,7 +308,7 @@ CSRF_TRUSTED_ORIGINS=http://localhost:8000,http://127.0.0.1:8000
 
 ### Linux（Ubuntu）本番環境
 
-#### 1. 自動デプロイ（推奨）
+#### 1. 本番環境デプロイ（新規環境）
 ```bash
 # リポジトリクローン
 git clone https://github.com/hatane-rgb/KokkoSofter.git
@@ -318,6 +318,22 @@ cd KokkoSofter
 chmod +x deploy.sh
 
 # 本番環境自動デプロイ
+./deploy.sh production
+```
+
+#### 1b. 本番環境デプロイ（既存環境の更新）
+```bash
+# 既存の本番環境を更新する場合
+cd /var/www/kokkosofter
+
+# ローカル変更を破棄して最新版を取得
+git reset --hard HEAD
+git pull origin main
+
+# 実行権限を再設定
+chmod +x deploy.sh
+
+# デプロイ続行
 ./deploy.sh production
 ```
 

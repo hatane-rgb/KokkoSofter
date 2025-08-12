@@ -5,6 +5,7 @@ KokkoSofterの一般的な問題と解決方法をまとめました。
 ## 📋 目次
 
 - [インストール・セットアップの問題](#インストールセットアップの問題)
+- [本番環境デプロイの問題](#本番環境デプロイの問題)
 - [Python環境の問題](#python環境の問題)
 - [Node.js・TailwindCSSの問題](#nodejs-tailwindcssの問題)
 - [データベースの問題](#データベースの問題)
@@ -12,6 +13,92 @@ KokkoSofterの一般的な問題と解決方法をまとめました。
 - [本番環境の問題](#本番環境の問題)
 - [Nginx・Webサーバーの問題](#nginx-webサーバーの問題)
 - [CSRF・セキュリティの問題](#csrf-セキュリティの問題)
+
+## 本番環境デプロイの問題
+
+### 🔄 Git merge エラー
+
+**症状**: `error: Your local changes to the following files would be overwritten by merge`
+
+**原因**: 本番環境ディレクトリに既存ファイルがあり、GitHubの最新版と競合
+
+**解決方法**:
+
+#### 方法1: 既存環境の強制更新（推奨）
+```bash
+# 本番環境ディレクトリに移動
+cd /var/www/kokkosofter
+
+# ローカル変更を破棄して最新版を取得
+git reset --hard HEAD
+git pull origin main
+
+# 実行権限を再設定
+chmod +x deploy.sh
+
+# デプロイ再実行
+./deploy.sh production
+```
+
+#### 方法2: 一からやり直し
+```bash
+# 既存ディレクトリを削除（バックアップ推奨）
+sudo rm -rf /var/www/kokkosofter
+
+# 新規クローン・デプロイ
+git clone https://github.com/hatane-rgb/KokkoSofter.git
+cd KokkoSofter
+chmod +x deploy.sh
+./deploy.sh production
+```
+
+#### 方法3: stashを使用
+```bash
+cd /var/www/kokkosofter
+
+# ローカル変更を一時保存
+git stash
+
+# 最新版を取得
+git pull origin main
+
+# デプロイ再実行
+chmod +x deploy.sh
+./deploy.sh production
+```
+
+### 🚫 Permission denied エラー
+
+**症状**: `chmod: changing permissions of 'deploy.sh': Operation not permitted`
+
+**解決方法**:
+```bash
+# 所有者を確認
+ls -la deploy.sh
+
+# 所有者変更（必要に応じて）
+sudo chown $(whoami):$(whoami) deploy.sh
+
+# 実行権限付与
+chmod +x deploy.sh
+```
+
+### 📁 ディレクトリが見つからない
+
+**症状**: `/var/www/kokkosofter` ディレクトリが存在しない
+
+**解決方法**:
+```bash
+# ディレクトリ作成
+sudo mkdir -p /var/www/kokkosofter
+sudo chown $(whoami):$(whoami) /var/www/kokkosofter
+
+# または新規クローン
+git clone https://github.com/hatane-rgb/KokkoSofter.git /var/www/kokkosofter
+cd /var/www/kokkosofter
+chmod +x deploy.sh
+./deploy.sh production
+```
 
 ## インストール・セットアップの問題
 
