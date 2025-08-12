@@ -48,6 +48,11 @@ production_settings.py
 .idea/
 *.swp
 *.swo
+
+# Test directories
+test/
+tests/
+testing/
 *~
 .project
 .pydevproject

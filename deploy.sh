@@ -341,25 +341,8 @@ if [ -d ".git" ]; then
     git config --global --add safe.directory "$PROJECT_DIR" 2>/dev/null || true
     print_success "✅ Git safe.directory設定を追加しました"
     
-    # 本番環境でのみ最新のコードを取得
-    if [ "$ENVIRONMENT" = "production" ] && [ "$OS_TYPE" != "windows" ]; then
-        print_info "最新のコードを取得中..."
-        
-        # Gitの状態を確認
-        if git diff --quiet && git diff --cached --quiet; then
-            # 変更がない場合は通常のpull
-            git pull origin main
-            print_success "✅ 最新のコードを取得しました"
-        else
-            # ローカル変更がある場合は強制更新
-            print_warning "ローカル変更が検出されました。最新版で強制更新します..."
-            git fetch origin
-            git reset --hard origin/main
-            print_success "✅ 最新のコードで強制更新しました"
-        fi
-    else
-        print_info "開発環境では現在のコードを使用します"
-    fi
+    # 現在のコードをそのまま使用（更新しない）
+    print_info "現在のコードを使用してデプロイを続行します"
 else
     print_warning "Gitリポジトリが見つかりません。現在のファイルを使用します。"
 fi

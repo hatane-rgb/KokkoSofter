@@ -21,66 +21,56 @@ KokkoSofterは、チームメンバー間のコミュニケーションを活性
 - 🔒 **セキュリティ**: 堅牢な認証・認可システム
 - 👑 **管理機能**: 包括的な管理者ダッシュボード
 
-## 🚀 クイックスタート
+## 🚀 ワンコマンド本番デプロイ
 
-### 自動セットアップ（推奨）
+**本番環境に即座にデプロイ**（Linux/Ubuntu/CentOS対応）：
 
-#### Windows
+```bash
+curl -sSL https://raw.githubusercontent.com/hatane-rgb/KokkoSofter/main/deploy.sh | sudo bash -s production
+```
+
+⚡ **これだけで完了！**
+- 自動でGitクローン
+- 依存関係インストール
+- データベース初期化
+- Nginx + Gunicorn設定
+- systemdサービス登録・起動
+
+**アクセス**: http://your-server-ip/
+
+---
+
+## 💻 開発環境セットアップ
+
+**Windows**:
 ```powershell
-# 1. リポジトリをクローン
 git clone https://github.com/hatane-rgb/KokkoSofter.git
 cd KokkoSofter
-
-# 2. PowerShellで自動セットアップ
 .\deploy.ps1 development
-
-# 3. 開発サーバーを起動
-python venv\Scripts\activate
-python manage.py runserver
 ```
 
-#### Linux/macOS（開発環境）
+**Linux/macOS**:
 ```bash
-# 1. リポジトリをクローン
 git clone https://github.com/hatane-rgb/KokkoSofter.git
 cd KokkoSofter
-
-# 2. 自動セットアップ
-make full-setup
-
-# 3. 開発サーバーを起動
-make run
+make full-setup && make run
 ```
 
-#### Linux 本番環境デプロイ
-```bash
-# 新規デプロイの場合
-git clone https://github.com/hatane-rgb/KokkoSofter.git
-cd KokkoSofter
-chmod +x deploy.sh
-./deploy.sh production
+**アクセス**: http://127.0.0.1:8000/
 
-# 既存環境を更新する場合
+---
+
+## 📋 手動デプロイ（詳細制御が必要な場合）
+
+```bash
+# 1. クローン & セットアップ
+git clone https://github.com/hatane-rgb/KokkoSofter.git /var/www/kokkosofter
 cd /var/www/kokkosofter
-git reset --hard HEAD && git pull origin main
 chmod +x deploy.sh
+
+# 2. 本番デプロイ実行
 ./deploy.sh production
 ```
-
-### アクセス
-- **開発サーバー**: http://127.0.0.1:8000/
-- **管理者画面**: http://127.0.0.1:8000/admin/
-
-## 📚 詳細ドキュメント
-
-| ドキュメント | 内容 | 対象者 |
-|-------------|------|--------|
-| [�️ セットアップガイド](docs/SETUP.md) | Windows/Linux詳細セットアップ | 初回導入時 |
-| [🔧 開発ガイド](docs/DEVELOPMENT.md) | 開発環境・コーディング | 開発者 |
-| [🚀 デプロイメント](docs/DEPLOYMENT.md) | 本番環境構築・運用 | インフラ担当者 |
-| [📖 機能一覧](docs/FEATURES.md) | 全機能詳細説明 | 利用者・企画者 |
-| [🎨 UI/UXガイド](docs/UI_GUIDE.md) | デザイン・カスタマイズ | デザイナー |
-| [🆘 トラブルシューティング](docs/TROUBLESHOOTING.md) | 問題解決・FAQ | 管理者・ユーザー |
 
 ## ⚡ Makeコマンド一覧
 
@@ -105,9 +95,21 @@ chmod +x deploy.sh
 ### 🌐 本番環境
 - `make nginx-setup` - Nginx設定適用
 - `make service-restart` - サービス再起動
+- `make fix-permissions` - 権限修正
 - `make configure-domain` - ドメイン設定
 
 すべてのコマンド一覧: `make help`
+
+## 📚 詳細ドキュメント
+
+| ドキュメント | 内容 | 対象者 |
+|-------------|------|--------|
+| [�️ セットアップガイド](docs/SETUP.md) | Windows/Linux詳細セットアップ | 初回導入時 |
+| [🔧 開発ガイド](docs/DEVELOPMENT.md) | 開発環境・コーディング | 開発者 |
+| [🚀 デプロイメント](docs/DEPLOYMENT.md) | 本番環境構築・運用 | インフラ担当者 |
+| [📖 機能一覧](docs/FEATURES.md) | 全機能詳細説明 | 利用者・企画者 |
+| [🎨 UI/UXガイド](docs/UI_GUIDE.md) | デザイン・カスタマイズ | デザイナー |
+| [🆘 トラブルシューティング](docs/TROUBLESHOOTING.md) | 問題解決・FAQ | 管理者・ユーザー |
 
 ## 🤝 コントリビューション
 
