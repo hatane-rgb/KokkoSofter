@@ -319,12 +319,19 @@ if [ ${#MISSING_FILES[@]} -gt 0 ]; then
             cd "$PROJECT_DIR"
             if [ -f "manage.py" ]; then
                 print_success "✅ 再コピー後にmanage.pyが見つかりました"
-                return 0  # エラーを回避して続行
+                # ファイルが見つかったので継続
+            else
+                print_error "❌ 再コピー後もmanage.pyが見つかりませんでした"
+                exit 1
             fi
+        else
+            print_error "❌ 元のディレクトリでもmanage.pyが見つかりませんでした"
+            exit 1
         fi
+    else
+        print_error "❌ 元のディレクトリが存在しませんでした"
+        exit 1
     fi
-    
-    exit 1
 else
     print_success "✅ 必要なファイルがすべて見つかりました"
 fi
