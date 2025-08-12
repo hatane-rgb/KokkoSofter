@@ -2,6 +2,26 @@
 
 **モダンでスタイリッシュなチーム向けソーシャル投稿プラットフォーム**
 
+## ⚡ **ワンコマンド本番デプロイ**
+
+**Linux/Ubuntu/CentOS サーバーで以下をコピペして実行するだけ：**
+
+```bash
+curl -sSL https://raw.githubuse[🚀 ワンコマンド本番デプロイ](#ワンコマンド本番デプロイ) • [📖 ドキュメント](#詳細ドキュメント) • [🆘 サポート](#サポート・トラブルシューティング)content.com/hatane-rgb/KokkoSofter/main/deploy.sh | sudo bash -s production
+```
+
+### 🎯 **これだけで完了！**
+- ✅ 自動でGitクローン
+- ✅ 依存関係インストール（Python + Node.js）
+- ✅ データベース初期化
+- ✅ Nginx + Gunicorn設定
+- ✅ systemdサービス登録・起動
+- ✅ 本番環境完全構築
+
+**アクセス**: `http://your-server-ip/`
+
+---
+
 KokkoSofterは、チームメンバー間のコミュニケーションを活性化させる美しいWebアプリケーションです。DjangoとTailwind CSSで構築され、直感的なUIと豊富な機能を提供します。
 
 ![Django](https://img.shields.io/badge/Django-5.2.4-green)
@@ -40,7 +60,7 @@ curl -sSL https://raw.githubusercontent.com/hatane-rgb/KokkoSofter/main/deploy.s
 
 ---
 
-## 💻 開発環境セットアップ
+## 💻 開発環境セットアップ（詳細が必要な場合）
 
 **Windows**:
 ```powershell
