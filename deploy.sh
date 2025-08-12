@@ -742,6 +742,56 @@ if [ "$ENVIRONMENT" = "production" ] && [ "$OS_TYPE" != "windows" ]; then
     sudo systemctl start kokkosofter
     
     print_success "本番環境のデプロイが完了しました！"
+    
+    # adminアカウント作成を促す
+    print_info ""
+    print_info "========================================"
+    print_info "🔐 管理者アカウントの作成"
+    print_info "========================================"
+    print_info "KokkoSofterにログインするための管理者アカウントを作成します。"
+    echo
+    read -p "管理者アカウントを作成しますか？ [Y/n]: " CREATE_ADMIN
+    
+    if [[ "$CREATE_ADMIN" =~ ^([nN][oO]|[nN])$ ]]; then
+        print_warning "管理者アカウントの作成をスキップしました。"
+        print_warning "後で以下のコマンドで作成できます："
+        print_warning "  cd /var/www/kokkosofter && source venv/bin/activate && python manage.py createsuperuser"
+    else
+        print_info "管理者アカウントを作成中..."
+        source venv/bin/activate
+        python manage.py createsuperuser
+        print_success "✅ 管理者アカウントの作成が完了しました"
+    fi
+    
+    # ドメイン設定の確認
+    if [ -z "$DOMAIN_INPUT" ]; then
+        print_info ""
+        print_info "========================================"
+        print_info "🌐 ドメイン設定 (重要)"
+        print_info "========================================"
+        print_warning "ドメイン設定がスキップされました。"
+        print_warning "本番環境ではドメイン設定が必要です！"
+        echo
+        read -p "今すぐドメインを設定しますか？ [Y/n]: " SETUP_DOMAIN_NOW
+        
+        if [[ ! "$SETUP_DOMAIN_NOW" =~ ^([nN][oO]|[nN])$ ]]; then
+            configure_domain
+            
+            # 設定後はGunicornとNginxを再起動
+            print_info "設定を反映するためにサービスを再起動中..."
+            sudo systemctl restart kokkosofter
+            sudo systemctl reload nginx
+            print_success "✅ サービスの再起動が完了しました"
+        else
+            print_warning "ドメイン設定をスキップしました。"
+            print_warning "後で以下の手順で設定してください："
+            print_warning "  1. .envファイルのALLOWED_HOSTSとCSRF_TRUSTED_ORIGINSを編集"
+            print_warning "  2. nginx_kokkosofter.confのserver_nameを編集"
+            print_warning "  3. sudo systemctl restart kokkosofter"
+            print_warning "  4. sudo systemctl reload nginx"
+        fi
+    fi
+    
     print_info ""
     print_info "🎉 次のコマンドでサービス状態を確認してください:"
     print_info "  sudo systemctl status kokkosofter"
